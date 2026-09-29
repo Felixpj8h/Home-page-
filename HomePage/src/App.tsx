@@ -81,6 +81,10 @@ const planetInputs: PlanetInput[] = [
   { name: 'Neptune', model: neptuneUrl, texture: neptuneTextureUrl, distanceAu: 30.06, size: 0.52, periodYears: 164.79, eccentricity: 0.011, phase: 5.38, inclination: 0.031 },
 ]
 
+const ASTEROID_BELT_INNER_GAP = 0.38
+const ASTEROID_BELT_WIDTH = 0.68
+const ASTEROID_TO_JUPITER_GAP = 0.4
+
 const planets: PlanetSpec[] = (() => {
   let previousOrbit = 0
   let previousSize = 1.32
@@ -89,7 +93,10 @@ const planets: PlanetSpec[] = (() => {
   return planetInputs.map(({ distanceAu, ...planet }) => {
     const naturalOrbit = orbitFromAu(distanceAu)
     const clearanceOrbit = previousOrbit + previousSize + planet.size + minimumSurfaceGap
-    const orbit = Math.max(naturalOrbit, clearanceOrbit)
+    const beltClearanceOrbit = planet.name === 'Jupiter'
+      ? previousOrbit + ASTEROID_BELT_INNER_GAP + ASTEROID_BELT_WIDTH + planet.size + ASTEROID_TO_JUPITER_GAP
+      : 0
+    const orbit = Math.max(naturalOrbit, clearanceOrbit, beltClearanceOrbit)
     previousOrbit = orbit
     previousSize = planet.size
     return { ...planet, orbit }
@@ -99,6 +106,7 @@ const planets: PlanetSpec[] = (() => {
 const PLANET_SPIN_SPEED = 0.24
 const SUN_X = 2.7
 const SUN_Y = 0.1
+const SUN_TARGET: [number, number, number] = [SUN_X, SUN_Y, 0]
 const HOME_CAMERA_POSITION = new Vector3(-4.05, 5.8, 21)
 
 const allModels = [sunUrl, moonUrl, ...planets.map((planet) => planet.model)]
@@ -234,7 +242,7 @@ function Sun({ radius }: { radius: number }) {
   return <primitive object={model} />
 }
 
-function SpaceBackdrop({ onClearFocus, paused }: { onClearFocus: () => void; paused: boolean }) {
+function SpaceBackdrop({ paused }: { paused: boolean }) {
   const backdropRef = useRef<Mesh>(null)
 
   useFrame(({ pointer }, delta) => {
@@ -246,7 +254,7 @@ function SpaceBackdrop({ onClearFocus, paused }: { onClearFocus: () => void; pau
   })
 
   return (
-    <mesh ref={backdropRef} scale={62} onClick={onClearFocus}>
+    <mesh ref={backdropRef} scale={62}>
       <sphereGeometry args={[1, 32, 24]} />
       <shaderMaterial
         side={BackSide}
@@ -477,12 +485,6 @@ function TexturedModel({
   return <primitive object={model} />
 }
 
-const atmosphereColors: Record<string, string> = {
-  Venus: '#d7a66f',
-  Uranus: '#83ddeb',
-  Neptune: '#4e79ff',
-}
-
 const layeredAtmosphereColors = {
   Earth: {
     rayleigh: '#2f7dff',
@@ -497,47 +499,6 @@ const layeredAtmosphereColors = {
     sunset: '#ffd08a',
   },
 } as const
-
-function Atmosphere({ radius, color, intensity = 1 }: { radius: number; color: string; intensity?: number }) {
-  const uniforms = useMemo(() => ({
-    uColor: { value: new Color(color) },
-    uIntensity: { value: intensity },
-  }), [color, intensity])
-
-  return (
-    <mesh scale={radius * 1.05}>
-      <icosahedronGeometry args={[1, 3]} />
-      <shaderMaterial
-        uniforms={uniforms}
-        transparent
-        depthWrite={false}
-        blending={AdditiveBlending}
-        vertexShader={`
-          varying vec3 vViewNormal;
-          varying vec3 vViewPosition;
-          void main() {
-            vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-            vViewPosition = viewPosition.xyz;
-            vViewNormal = normalize(normalMatrix * normal);
-            gl_Position = projectionMatrix * viewPosition;
-          }
-        `}
-        fragmentShader={`
-          uniform vec3 uColor;
-          uniform float uIntensity;
-          varying vec3 vViewNormal;
-          varying vec3 vViewPosition;
-          void main() {
-            vec3 viewDirection = normalize(-vViewPosition);
-            float rim = pow(1.0 - max(dot(normalize(vViewNormal), viewDirection), 0.0), 2.7);
-            float alpha = smoothstep(0.12, 0.98, rim) * 0.2 * uIntensity;
-            gl_FragColor = vec4(uColor * (0.28 + rim * 0.42) * uIntensity, alpha);
-          }
-        `}
-      />
-    </mesh>
-  )
-}
 
 function LayeredAtmosphere({ radius, planet }: { radius: number; planet: keyof typeof layeredAtmosphereColors }) {
   const atmosphereRef = useRef<Group>(null)
@@ -678,7 +639,6 @@ function AsteroidBelt({ paused }: { paused: boolean }) {
   const meshRef = useRef<InstancedMesh>(null)
   const count = 280
   const marsOrbit = planets.find((planet) => planet.name === 'Mars')?.orbit ?? 4.1
-  const jupiterOrbit = planets.find((planet) => planet.name === 'Jupiter')?.orbit ?? 5.5
 
   const asteroids = useMemo(() => {
     let seed = 918273
@@ -688,14 +648,14 @@ function AsteroidBelt({ paused }: { paused: boolean }) {
     }
     return Array.from({ length: count }, (_, index) => {
       const angle = (index / count) * Math.PI * 2 + (random() - 0.5) * 0.16
-      const radius = marsOrbit + 0.38 + random() * Math.max(0.2, jupiterOrbit - marsOrbit - 0.76)
+      const radius = marsOrbit + ASTEROID_BELT_INNER_GAP + random() * ASTEROID_BELT_WIDTH
       return {
         position: new Vector3(Math.cos(angle) * radius, (random() - 0.5) * 0.22, Math.sin(angle) * radius * 0.985),
         rotation: new Vector3(random() * Math.PI, random() * Math.PI, random() * Math.PI),
         scale: 0.018 + Math.pow(random(), 2.2) * 0.075,
       }
     })
-  }, [count, jupiterOrbit, marsOrbit])
+  }, [count, marsOrbit])
 
   useEffect(() => {
     if (!meshRef.current) return
@@ -743,24 +703,67 @@ function CameraFocus({
 }) {
   const { camera } = useThree()
   const worldPosition = useMemo(() => new Vector3(), [])
+  const previousWorldPosition = useMemo(() => new Vector3(), [])
+  const planetMovement = useMemo(() => new Vector3(), [])
   const desiredPosition = useMemo(() => new Vector3(), [])
   const viewDirection = useMemo(() => new Vector3(), [])
   const systemTarget = useMemo(() => new Vector3(SUN_X, SUN_Y, 0), [])
+  const focusedObject = useRef<Object3D | null>(null)
+  const approaching = useRef(false)
+
+  useEffect(() => {
+    const controls = controlsRef.current
+    if (!controls || !focus) return
+
+    const stopApproach = () => {
+      focus.object.getWorldPosition(worldPosition)
+      focusedObject.current = focus.object
+      previousWorldPosition.copy(worldPosition)
+      controls.target.copy(worldPosition)
+      approaching.current = false
+      controls.update()
+    }
+
+    controls.addEventListener('start', stopApproach)
+    return () => controls.removeEventListener('start', stopApproach)
+  }, [controlsRef, focus, previousWorldPosition, worldPosition])
 
   useFrame((_, delta) => {
     const controls = controlsRef.current
     if (!controls) return
     if (focus) {
-      const focusBlend = 1 - Math.exp(-delta * 3.2)
       focus.object.getWorldPosition(worldPosition)
-      viewDirection.copy(camera.position).sub(controls.target).normalize()
-      desiredPosition.copy(worldPosition).addScaledVector(viewDirection, focus.distance)
-      controls.target.copy(systemTarget)
-      camera.position.lerp(desiredPosition, focusBlend)
+      if (focusedObject.current !== focus.object) {
+        focusedObject.current = focus.object
+        approaching.current = true
+        previousWorldPosition.copy(worldPosition)
+        viewDirection.copy(camera.position).sub(worldPosition).normalize()
+      } else {
+        planetMovement.copy(worldPosition).sub(previousWorldPosition)
+        camera.position.add(planetMovement)
+        controls.target.add(planetMovement)
+        previousWorldPosition.copy(worldPosition)
+      }
+
+      if (approaching.current) {
+        const focusBlend = 1 - Math.exp(-delta * 3.2)
+        desiredPosition.copy(worldPosition).addScaledVector(viewDirection, focus.distance)
+        controls.target.lerp(worldPosition, focusBlend)
+        camera.position.lerp(desiredPosition, focusBlend)
+        if (controls.target.distanceTo(worldPosition) < 0.015 && camera.position.distanceTo(desiredPosition) < 0.03) {
+          controls.target.copy(worldPosition)
+          camera.position.copy(desiredPosition)
+          approaching.current = false
+        }
+      } else {
+        controls.target.copy(worldPosition)
+      }
       controls.update()
       return
     }
 
+    focusedObject.current = null
+    approaching.current = false
     if (!returningHome) return
 
     const returnBlend = 1 - Math.exp(-delta * 1.05)
@@ -837,16 +840,6 @@ function Planet({
         {(planet.name === 'Earth' || planet.name === 'Mars') && (
           <LayeredAtmosphere radius={planet.size} planet={planet.name} />
         )}
-        {atmosphereColors[planet.name] && (
-          <Atmosphere
-            radius={
-              planet.name === 'Uranus'
-                ? planet.size * 0.55
-                : planet.size
-            }
-            color={atmosphereColors[planet.name]}
-          />
-        )}
         {planet.name === 'Earth' && <Moon paused={paused} labels={labels} />}
         {(labels || focused) && (
           <Html center position={[0, planet.size + 0.34, 0]} distanceFactor={11} zIndexRange={[10, 0]}>
@@ -862,7 +855,7 @@ function SolarSystem({ paused, labels, focus, onFocus }: { paused: boolean; labe
   const systemRef = useRef<Group>(null)
 
   useFrame(({ pointer }, delta) => {
-    if (!systemRef.current || paused) return
+    if (!systemRef.current || paused || focus) return
     systemRef.current.rotation.x += (pointer.y * 0.09 - systemRef.current.rotation.x) * Math.min(delta * 2.5, 1)
     systemRef.current.rotation.y += (pointer.x * 0.08 - systemRef.current.rotation.y) * Math.min(delta * 2.5, 1)
   })
@@ -894,10 +887,70 @@ function SolarSystem({ paused, labels, focus, onFocus }: { paused: boolean; labe
   )
 }
 
-function Scene({ paused, labels }: { paused: boolean; labels: boolean }) {
+function Scene({
+  paused,
+  labels,
+  focus,
+  returningHome,
+  onFocus,
+  onReturnComplete,
+}: {
+  paused: boolean
+  labels: boolean
+  focus: FocusTarget | null
+  returningHome: boolean
+  onFocus: (target: FocusTarget) => void
+  onReturnComplete: () => void
+}) {
+  const controlsRef = useRef<OrbitControlsImpl>(null)
+
+  return (
+    <>
+      <color attach="background" args={['#03060d']} />
+      <fog attach="fog" args={['#03060d', 19, 34]} />
+      <SpaceBackdrop paused={paused} />
+      <ambientLight intensity={0.72} color="#8fa8d2" />
+      <hemisphereLight args={['#9bb9e8', '#2a1714', 0.92]} />
+      <directionalLight position={[-8, 7, 12]} color="#a9c8ff" intensity={1.35} />
+      <DepthLayers paused={paused} />
+      <Suspense fallback={null}><SolarSystem paused={paused} labels={labels} focus={focus} onFocus={onFocus} /></Suspense>
+      <CameraFraming focused={Boolean(focus)} />
+      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={SUN_TARGET} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
+      <CameraFocus
+        focus={focus}
+        returningHome={returningHome}
+        controlsRef={controlsRef}
+        onReturnComplete={onReturnComplete}
+      />
+      <AdaptiveDpr pixelated />
+      <BloomEffect />
+    </>
+  )
+}
+
+function CameraFraming({ focused }: { focused: boolean }) {
+  const { camera, size } = useThree()
+
+  useEffect(() => {
+    if (!(camera instanceof PerspectiveCamera)) return
+    const rightShift = focused ? 0 : size.width <= 520 ? 0.1 : size.width <= 900 ? 0.14 : 0.2
+    camera.setViewOffset(size.width, size.height, -size.width * rightShift, 0, size.width, size.height)
+    camera.updateProjectionMatrix()
+    return () => {
+      camera.clearViewOffset()
+      camera.updateProjectionMatrix()
+    }
+  }, [camera, size.width, size.height, focused])
+
+  return null
+}
+
+function App() {
+  const [paused, setPaused] = useState(false)
+  const [labels, setLabels] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [focus, setFocus] = useState<FocusTarget | null>(null)
   const [returningHome, setReturningHome] = useState(false)
-  const controlsRef = useRef<OrbitControlsImpl>(null)
 
   const focusPlanet = (target: FocusTarget) => {
     setReturningHome(false)
@@ -910,51 +963,16 @@ function Scene({ paused, labels }: { paused: boolean; labels: boolean }) {
     setReturningHome(true)
   }
 
-  return (
-    <>
-      <color attach="background" args={['#03060d']} />
-      <fog attach="fog" args={['#03060d', 19, 34]} />
-      <SpaceBackdrop onClearFocus={clearFocus} paused={paused} />
-      <ambientLight intensity={0.72} color="#8fa8d2" />
-      <hemisphereLight args={['#9bb9e8', '#2a1714', 0.92]} />
-      <directionalLight position={[-8, 7, 12]} color="#a9c8ff" intensity={1.35} />
-      <DepthLayers paused={paused} />
-      <Suspense fallback={null}><SolarSystem paused={paused} labels={labels} focus={focus} onFocus={focusPlanet} /></Suspense>
-      <CameraFraming />
-      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={[SUN_X, SUN_Y, 0]} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
-      <CameraFocus
-        focus={focus}
-        returningHome={returningHome}
-        controlsRef={controlsRef}
-        onReturnComplete={() => setReturningHome(false)}
-      />
-      <AdaptiveDpr pixelated />
-      <BloomEffect />
-    </>
-  )
-}
-
-function CameraFraming() {
-  const { camera, size } = useThree()
-
   useEffect(() => {
-    if (!(camera instanceof PerspectiveCamera)) return
-    const rightShift = size.width <= 520 ? 0.1 : size.width <= 900 ? 0.14 : 0.2
-    camera.setViewOffset(size.width, size.height, -size.width * rightShift, 0, size.width, size.height)
-    camera.updateProjectionMatrix()
-    return () => {
-      camera.clearViewOffset()
-      camera.updateProjectionMatrix()
+    if (!focus) return
+    const exitOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setFocus(null)
+      setReturningHome(true)
     }
-  }, [camera, size.width, size.height])
-
-  return null
-}
-
-function App() {
-  const [paused, setPaused] = useState(false)
-  const [labels, setLabels] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+    window.addEventListener('keydown', exitOnEscape)
+    return () => window.removeEventListener('keydown', exitOnEscape)
+  }, [focus])
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -965,7 +983,7 @@ function App() {
     <main className="experience">
       <div className="scene" aria-hidden="true">
         <Canvas camera={{ position: HOME_CAMERA_POSITION.toArray(), fov: 46, near: 0.1, far: 120 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}>
-          <Scene paused={paused} labels={labels} />
+          <Scene paused={paused} labels={labels} focus={focus} returningHome={returningHome} onFocus={focusPlanet} onReturnComplete={() => setReturningHome(false)} />
         </Canvas>
       </div>
       <div className="cosmic-haze" />
@@ -990,14 +1008,15 @@ function App() {
       </section>
 
       <aside className="scene-controls" aria-label="Solar system controls">
-        <p>Interactive orbit</p>
+        <p>{focus ? `Focused on ${focus.name}` : 'Interactive orbit'}</p>
         <div>
           <button type="button" onClick={() => setPaused((value) => !value)} aria-pressed={paused}>{paused ? 'Play' : 'Pause'}</button>
           <button type="button" onClick={() => setLabels((value) => !value)} aria-pressed={labels}>{labels ? 'Hide names' : 'Show names'}</button>
+          {focus && <button type="button" className="focus-exit" onClick={clearFocus}>Exit focus · Esc</button>}
         </div>
       </aside>
 
-      <div className="drag-hint" aria-hidden="true"><span /> Drag · click a planet</div>
+      <div className="drag-hint" aria-hidden="true"><span /> {focus ? 'Drag to orbit · Esc to exit' : 'Drag · click a planet'}</div>
       <div className="side-note left">Curiosity<br />builds<br />better worlds</div>
       <div className="section-anchor" id="projects" aria-hidden="true" />
       <div className="section-anchor" id="about" aria-hidden="true" />

@@ -33,8 +33,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .scene-controls { position: absolute; z-index: 10; right: clamp(28px, 4vw, 72px); bottom: 42px; text-align: right; }
 .scene-controls p { margin: 0 0 10px; color: rgba(223, 224, 229, 0.38); font: 500 0.64rem/1 'DM Sans', sans-serif; letter-spacing: 0.2em; text-transform: uppercase; }
-.scene-controls div { display: flex; gap: 8px; }
+.scene-controls div { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .scene-controls button { min-height: 38px; padding: 0 14px; color: rgba(246, 244, 240, 0.72); border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 999px; background: rgba(7, 12, 23, 0.55); backdrop-filter: blur(12px); cursor: pointer; font: 500 0.68rem/1 'DM Sans', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; transition: border-color 180ms ease, background 180ms ease, color 180ms ease; }
+.scene-controls .focus-exit { border-color: rgba(223, 153, 96, 0.48); }
 .scene-controls button:hover, .scene-controls button:focus-visible, .scene-controls button[aria-pressed='true'] { color: #fff; border-color: rgba(223, 153, 96, 0.58); background: rgba(55, 35, 25, 0.62); }
 .drag-hint { position: absolute; z-index: 10; right: 50%; bottom: 44px; display: flex; align-items: center; gap: 10px; color: rgba(228, 229, 233, 0.38); font: 500 0.62rem/1 'DM Sans', sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 .drag-hint span { width: 24px; height: 1px; background: rgba(218, 147, 91, 0.7); }
@@ -69,7 +70,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .hero-copy { bottom: 116px; }
   .hero-copy h1 { font-size: clamp(3rem, 15.7vw, 4.6rem); }
   .role { gap: 8px; font-size: 0.6rem; }
-  .scene-controls { left: 24px; right: auto; }
+  .scene-controls { left: 24px; right: 24px; text-align: left; }
+  .scene-controls div { justify-content: flex-start; }
 }
 
 @media (prefers-reduced-motion: reduce) {
