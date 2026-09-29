@@ -6,9 +6,11 @@ export type Project = {
   role?: string
   highlights?: string[]
   workflow?: { title: string; description: string }[]
+  features?: string[]
   origin?: string
   previewImage?: string
   detailImages?: string[]
+  detailCaption?: string
   languages: { name: string; percent: number; color: string }[]
   liveUrl?: string
   codeUrl?: string
@@ -21,10 +23,18 @@ export const projects: Project[] = [
   {
     id: 'w-tracker',
     title: 'W-Tracker',
-    summary: 'Project description coming soon.',
-    overview: 'An overview of W-Tracker will be added here.',
-    role: 'Role details coming soon.',
-    highlights: ['Project highlights coming soon.'],
+    previewImage: '/projects/w-tracker-dashboard.png',
+    detailImages: ['/projects/w-tracker-coach.png'],
+    summary: 'A workout tracker built around how I train and manage my data.',
+    overview: 'W-Tracker combines my interests in weightlifting and web development. Spreadsheets gave me control over my workout data but made logging tedious; tracking apps were easier to use, but didn’t give me the flexibility I wanted without paywalls. I built W-Tracker to make logging simple while keeping the tracker tailored to how I train.',
+    features: [
+      'Log workouts and review recent sessions.',
+      'Track bodyweight and weekly activity over time.',
+      'Compare training volume and sets by muscle group.',
+      'View routines, upcoming workouts, and workout history.',
+      'Ask the Coach questions about your training data.',
+    ],
+    detailCaption: 'The Coach can break down training volume and set distribution by muscle group.',
     languages: [
       { name: 'TypeScript', percent: 42.9, color: '#4b80c8' },
       { name: 'Python', percent: 39.3, color: '#4a78a8' },
@@ -39,10 +49,18 @@ export const projects: Project[] = [
   {
     id: 'examgen',
     title: 'Examgen',
-    summary: 'Project description coming soon.',
-    overview: 'An overview of Examgen will be added here.',
-    role: 'Role details coming soon.',
-    highlights: ['Project highlights coming soon.'],
+    previewImage: '/projects/examgen-upload.png',
+    detailImages: ['/projects/examgen-question.png'],
+    summary: 'A Gemini-powered tool for creating interactive practice exams.',
+    overview: 'Examgen is a passion project that uses Gemini to create interactive practice exams. Users can enter their answers and view AI-generated solutions.',
+    workflow: [
+      { title: 'Upload an exam', description: 'Add an exam PDF. A solutions or syllabus PDF is optional.' },
+      { title: 'Generate practice questions', description: 'Use Gemini to create a mock exam and AI practice solutions from the uploaded material.' },
+      { title: 'Answer the questions', description: 'Choose a question from the list on the left, write an answer, and track your progress.' },
+      { title: 'Review the solution', description: 'Reveal the AI answer to compare its explanation and code with your own. It is a practice answer, not an official answer key.' },
+    ],
+    origin: 'I started it to learn how to build AI workflows. It’s still unfinished because of the time involved, but I plan to complete it.',
+    detailCaption: 'Practice view: questions and progress on the left; the answer field and AI-generated solution on the right.',
     languages: [
       { name: 'HTML', percent: 54.8, color: '#e35d3e' },
       { name: 'Python', percent: 30.9, color: '#4a78a8' },
@@ -57,6 +75,7 @@ export const projects: Project[] = [
     title: 'Dagens tall',
     previewImage: '/projects/dagenstall.png',
     detailImages: ['/projects/dagenstall-report.png'],
+    detailCaption: 'The editable closing report can be copied to Teams.',
     languages: [
       { name: 'TypeScript', percent: 65.7, color: '#4b80c8' },
       { name: 'Python', percent: 31.8, color: '#4a78a8' },

@@ -43,15 +43,15 @@ function ProjectLanguages({ project }: { project: Project }) {
 
 function ProjectDetails({ project, number }: { project: Project; number: string }) {
   return (
-    <div className={`project-details${project.workflow ? ' project-details-explained' : ''}`} id={`${project.id}-details`} role="region" aria-labelledby={`${project.id}-title`}>
-      <div className="project-details-content">
-        {project.workflow ? (
+    <div className={`project-details${project.workflow || project.features?.length ? ' project-details-explained' : ''}`} id={`${project.id}-details`} role="region" aria-labelledby={`${project.id}-title`}>
+      <div className={`project-details-content${!project.workflow && !project.role && !project.highlights?.length ? ' project-details-single-copy' : ''}`}>
+        {project.workflow || project.features?.length ? (
           <>
             <div className="detail-block project-overview">
               <h4>Project overview</h4>
               <p>{project.overview}</p>
             </div>
-            <div className="project-workflow">
+            {project.workflow && <div className="project-workflow">
               <h4>How it works</h4>
               <ol>
                 {project.workflow.map((step, index) => (
@@ -64,7 +64,13 @@ function ProjectDetails({ project, number }: { project: Project; number: string 
                   </li>
                 ))}
               </ol>
-            </div>
+            </div>}
+            {project.features?.length ? (
+              <div className="project-features">
+                <h4>Features</h4>
+                <ul>{project.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
+              </div>
+            ) : null}
             {project.origin && <p className="project-origin">{project.origin}</p>}
           </>
         ) : (
@@ -97,12 +103,12 @@ function ProjectDetails({ project, number }: { project: Project; number: string 
       <div className="project-detail-gallery">
         {project.detailImages?.length
           ? project.detailImages.map((image, index) => (
-            <div className="project-preview project-preview-detail" key={image}>
+            <div className="project-preview project-preview-detail project-preview-detail-image" key={image}>
               <img src={image} alt={`${project.title} detail ${index + 1}`} loading="lazy" />
             </div>
           ))
           : <ProjectPreview project={project} number={number} detail />}
-        {project.workflow && <p className="gallery-caption">The editable closing report can be copied to Teams.</p>}
+        {project.detailCaption && <p className="gallery-caption">{project.detailCaption}</p>}
       </div>
     </div>
   )
