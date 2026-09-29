@@ -44,6 +44,7 @@ import jupiterTextureUrl from '../Models/Textures/Jupiter.png?url'
 import saturnTextureUrl from '../Models/Textures/Saturn.png?url'
 import uranusTextureUrl from '../Models/Textures/Uranus.png?url'
 import neptuneTextureUrl from '../Models/Textures/Neptune.png?url'
+import ProjectsSection from './ProjectsSection'
 import './App.css'
 
 type PlanetSpec = {
@@ -980,7 +981,8 @@ function App() {
   }, [])
 
   return (
-    <main className="experience">
+    <main className="site">
+    <section className="experience" id="home" aria-label="Introduction">
       <div className="scene" aria-hidden="true">
         <Canvas camera={{ position: HOME_CAMERA_POSITION.toArray(), fov: 46, near: 0.1, far: 120 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}>
           <Scene paused={paused} labels={labels} focus={focus} returningHome={returningHome} onFocus={focusPlanet} onReturnComplete={() => setReturningHome(false)} />
@@ -999,13 +1001,13 @@ function App() {
         </nav>
       </header>
 
-      <section className="hero-copy" id="home">
+      <div className="hero-copy">
         <p className="eyebrow"><span>01</span> Portfolio / 2026</p>
         <h1>Felix<br />Johannessen</h1>
         <p className="role">Developer <i /> Designer <i /> Explorer</p>
         <p className="intro">I build digital worlds where thoughtful design meets expressive technology.</p>
         <a className="work-link" href="#projects">Explore selected work <span aria-hidden="true">↗</span></a>
-      </section>
+      </div>
 
       <aside className="scene-controls" aria-label="Solar system controls">
         <p>{focus ? `Focused on ${focus.name}` : 'Interactive orbit'}</p>
@@ -1018,8 +1020,9 @@ function App() {
 
       <div className="drag-hint" aria-hidden="true"><span /> {focus ? 'Drag to orbit · Esc to exit' : 'Drag · click a planet'}</div>
       <div className="side-note left">Curiosity<br />builds<br />better worlds</div>
-      <div className="section-anchor" id="projects" aria-hidden="true" />
       <div className="section-anchor" id="about" aria-hidden="true" />
+    </section>
+    <ProjectsSection />
     </main>
   )
 }
