@@ -45,6 +45,7 @@ import saturnTextureUrl from '../Models/Textures/Saturn.png?url'
 import uranusTextureUrl from '../Models/Textures/Uranus.png?url'
 import neptuneTextureUrl from '../Models/Textures/Neptune.png?url'
 import ProjectsSection from './ProjectsSection'
+import AboutSection from './AboutSection'
 import './App.css'
 
 type PlanetSpec = {
@@ -1054,9 +1055,9 @@ function App() {
       </aside>
 
       <div className="drag-hint" aria-hidden="true"><span /> {focus ? 'Drag to orbit · Esc to exit' : 'Drag · click a planet'}</div>
-      <div className="section-anchor" id="about" aria-hidden="true" />
     </section>
     <ProjectsSection />
+    <AboutSection />
     </main>
   )
 }
