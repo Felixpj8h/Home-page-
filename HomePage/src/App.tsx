@@ -109,6 +109,7 @@ const SUN_X = 2.7
 const SUN_Y = 0.1
 const SUN_TARGET: [number, number, number] = [SUN_X, SUN_Y, 0]
 const HOME_CAMERA_POSITION = new Vector3(-4.05, 5.8, 21)
+const MAX_CAMERA_DISTANCE = 24
 
 const allModels = [sunUrl, moonUrl, ...planets.map((planet) => planet.model)]
 allModels.forEach((model) => useGLTF.preload(model))
@@ -888,6 +889,40 @@ function SolarSystem({ paused, labels, focus, onFocus }: { paused: boolean; labe
   )
 }
 
+function ZoomOutToProjects({
+  controlsRef,
+  enabled,
+}: {
+  controlsRef: RefObject<OrbitControlsImpl | null>
+  enabled: boolean
+}) {
+  const { gl } = useThree()
+  const navigatingRef = useRef(false)
+
+  useEffect(() => {
+    const onWheel = (event: WheelEvent) => {
+      const controls = controlsRef.current
+      if (!enabled || event.deltaY <= 0 || navigatingRef.current || !controls) return
+      if (controls.getDistance() < MAX_CAMERA_DISTANCE - 0.02) return
+
+      navigatingRef.current = true
+      document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })
+    }
+    const resetWhenBackAtTop = () => {
+      if (window.scrollY <= 1) navigatingRef.current = false
+    }
+
+    gl.domElement.addEventListener('wheel', onWheel, { capture: true, passive: true })
+    window.addEventListener('scroll', resetWhenBackAtTop)
+    return () => {
+      gl.domElement.removeEventListener('wheel', onWheel, true)
+      window.removeEventListener('scroll', resetWhenBackAtTop)
+    }
+  }, [controlsRef, enabled, gl])
+
+  return null
+}
+
 function Scene({
   paused,
   labels,
@@ -916,7 +951,8 @@ function Scene({
       <DepthLayers paused={paused} />
       <Suspense fallback={null}><SolarSystem paused={paused} labels={labels} focus={focus} onFocus={onFocus} /></Suspense>
       <CameraFraming focused={Boolean(focus)} />
-      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={SUN_TARGET} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
+      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={MAX_CAMERA_DISTANCE} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={SUN_TARGET} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
+      <ZoomOutToProjects controlsRef={controlsRef} enabled={!focus && !returningHome} />
       <CameraFocus
         focus={focus}
         returningHome={returningHome}
@@ -1004,8 +1040,7 @@ function App() {
       <div className="hero-copy">
         <p className="eyebrow"><span>01</span> Portfolio / 2026</p>
         <h1>Felix<br />Johannessen</h1>
-        <p className="role">Developer <i /> Designer <i /> Explorer</p>
-        <p className="intro">I build digital worlds where thoughtful design meets expressive technology.</p>
+        <p className="role">Student <i /> Developer <i /> Designer</p>
         <a className="work-link" href="#projects">Explore selected work <span aria-hidden="true">↗</span></a>
       </div>
 
@@ -1019,7 +1054,6 @@ function App() {
       </aside>
 
       <div className="drag-hint" aria-hidden="true"><span /> {focus ? 'Drag to orbit · Esc to exit' : 'Drag · click a planet'}</div>
-      <div className="side-note left">Curiosity<br />builds<br />better worlds</div>
       <div className="section-anchor" id="about" aria-hidden="true" />
     </section>
     <ProjectsSection />

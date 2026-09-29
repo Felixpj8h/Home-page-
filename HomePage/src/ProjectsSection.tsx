@@ -20,22 +20,73 @@ function ProjectPreview({ project, number, detail = false }: { project: Project;
   )
 }
 
+function ProjectLanguages({ project }: { project: Project }) {
+  return (
+    <div className="project-languages">
+      <h4>Languages</h4>
+      <div className="language-bar" role="img" aria-label={project.languages.map((language) => `${language.name} ${language.percent}%`).join(', ')}>
+        {project.languages.map((language) => (
+          <span key={language.name} style={{ width: `${language.percent}%`, backgroundColor: language.color }} />
+        ))}
+      </div>
+      <ul className="language-list">
+        {project.languages.map((language) => (
+          <li key={language.name}>
+            <span className="language-dot" style={{ backgroundColor: language.color }} aria-hidden="true" />
+            <span>{language.name} <small>{language.percent}%</small></span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function ProjectDetails({ project, number }: { project: Project; number: string }) {
   return (
-    <div className="project-details" id={`${project.id}-details`} role="region" aria-labelledby={`${project.id}-title`}>
+    <div className={`project-details${project.workflow ? ' project-details-explained' : ''}`} id={`${project.id}-details`} role="region" aria-labelledby={`${project.id}-title`}>
       <div className="project-details-content">
-        <div className="detail-block">
-          <h4>Overview</h4>
-          <p>{project.overview}</p>
-        </div>
-        <div className="detail-block">
-          <h4>My role</h4>
-          <p>{project.role}</p>
-        </div>
-        <div className="detail-block">
-          <h4>Highlights</h4>
-          <ul>{project.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul>
-        </div>
+        {project.workflow ? (
+          <>
+            <div className="detail-block project-overview">
+              <h4>Project overview</h4>
+              <p>{project.overview}</p>
+            </div>
+            <div className="project-workflow">
+              <h4>How it works</h4>
+              <ol>
+                {project.workflow.map((step, index) => (
+                  <li key={step.title}>
+                    <span className="workflow-number">{String(index + 1).padStart(2, '0')}</span>
+                    <div>
+                      <h5>{step.title}</h5>
+                      <p>{step.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            {project.origin && <p className="project-origin">{project.origin}</p>}
+          </>
+        ) : (
+          <>
+            <div className="detail-block">
+              <h4>Overview</h4>
+              <p>{project.overview}</p>
+            </div>
+            {project.role && (
+              <div className="detail-block">
+                <h4>My role</h4>
+                <p>{project.role}</p>
+              </div>
+            )}
+            {project.highlights?.length ? (
+              <div className="detail-block">
+                <h4>Highlights</h4>
+                <ul>{project.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul>
+              </div>
+            ) : null}
+          </>
+        )}
         {(project.liveUrl || project.codeUrl) && (
           <div className="project-links">
             {project.liveUrl && <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">Live project ↗</a>}
@@ -51,6 +102,7 @@ function ProjectDetails({ project, number }: { project: Project; number: string 
             </div>
           ))
           : <ProjectPreview project={project} number={number} detail />}
+        {project.workflow && <p className="gallery-caption">The editable closing report can be copied to Teams.</p>}
       </div>
     </div>
   )
@@ -92,6 +144,7 @@ export default function ProjectsSection() {
                     >
                       {isOpen ? 'Close details' : 'View details'} <span aria-hidden="true">{isOpen ? '−' : '↗'}</span>
                     </button>
+                    <ProjectLanguages project={project} />
                   </div>
                 </div>
                 <div hidden={!isOpen}>
