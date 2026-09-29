@@ -1,7 +1,9 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import { AdaptiveDpr, Html, Line, OrbitControls, Sparkles, Stars, useGLTF, useTexture } from '@react-three/drei'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
+  BackSide,
   Box3,
   BufferGeometry,
   DoubleSide,
@@ -9,11 +11,18 @@ import {
   Group,
   Mesh,
   MeshStandardMaterial,
+  Object3D,
   RepeatWrapping,
   SRGBColorSpace,
+  ShaderMaterial,
+  Vector2,
   Vector3,
 } from 'three'
-import type { GLTF } from 'three-stdlib'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import type { GLTF, OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import sunUrl from '../Models/Sun.glb?url'
 import moonUrl from '../Models/Moon.glb?url'
 import venusUrl from '../Models/Venus.glb?url'
@@ -45,16 +54,42 @@ type PlanetSpec = {
   ringColor?: string
 }
 
-const planets: PlanetSpec[] = [
-  { name: 'Mercury', model: moonUrl, texture: mercuryTextureUrl, orbit: 1.72, size: 0.18, speed: 0.33, phase: 4.1, inclination: 0.08 },
-  { name: 'Venus', model: venusUrl, texture: venusTextureUrl, orbit: 2.35, size: 0.3, speed: 0.24, phase: 2.8, inclination: -0.04 },
-  { name: 'Earth', model: earthUrl, texture: earthTextureUrl, orbit: 3.15, size: 0.36, speed: 0.19, phase: 0.32, inclination: 0.03 },
-  { name: 'Mars', model: marsUrl, texture: marsTextureUrl, orbit: 4.05, size: 0.25, speed: 0.155, phase: 3.55, inclination: -0.08 },
-  { name: 'Jupiter', model: jupiterUrl, texture: jupiterTextureUrl, orbit: 5.1, size: 0.78, speed: 0.09, phase: 0.05, inclination: 0.04 },
-  { name: 'Saturn', model: saturnUrl, texture: saturnTextureUrl, orbit: 6.25, size: 0.9, speed: 0.065, phase: 3.02, inclination: -0.035, ringColor: '#c9aa78' },
-  { name: 'Uranus', model: uranusUrl, texture: uranusTextureUrl, orbit: 7.25, size: 0.54, speed: 0.045, phase: 1.17, inclination: 0.07, ringColor: '#91a9b4' },
-  { name: 'Neptune', model: neptuneUrl, texture: neptuneTextureUrl, orbit: 8.2, size: 0.52, speed: 0.034, phase: 5.38, inclination: -0.06 },
+const orbitFromAu = (distanceAu: number) => {
+  const closestAu = 0.39
+  const farthestAu = 30.06
+  const innerRadius = 1.5
+  const outerRadius = 8.2
+  const position = (Math.log(distanceAu) - Math.log(closestAu)) / (Math.log(farthestAu) - Math.log(closestAu))
+  return innerRadius + position * (outerRadius - innerRadius)
+}
+
+type PlanetInput = Omit<PlanetSpec, 'orbit'> & { distanceAu: number }
+
+const planetInputs: PlanetInput[] = [
+  { name: 'Mercury', model: moonUrl, texture: mercuryTextureUrl, distanceAu: 0.39, size: 0.18, speed: 0.33, phase: 4.1, inclination: 0.08 },
+  { name: 'Venus', model: venusUrl, texture: venusTextureUrl, distanceAu: 0.72, size: 0.3, speed: 0.24, phase: 2.8, inclination: -0.04 },
+  { name: 'Earth', model: earthUrl, texture: earthTextureUrl, distanceAu: 1, size: 0.36, speed: 0.19, phase: 0.32, inclination: 0.03 },
+  { name: 'Mars', model: marsUrl, texture: marsTextureUrl, distanceAu: 1.52, size: 0.25, speed: 0.155, phase: 3.55, inclination: -0.08 },
+  { name: 'Jupiter', model: jupiterUrl, texture: jupiterTextureUrl, distanceAu: 5.2, size: 0.78, speed: 0.09, phase: 0.05, inclination: 0.04 },
+  { name: 'Saturn', model: saturnUrl, texture: saturnTextureUrl, distanceAu: 9.54, size: 0.9, speed: 0.065, phase: 3.02, inclination: -0.035, ringColor: '#c9aa78' },
+  { name: 'Uranus', model: uranusUrl, texture: uranusTextureUrl, distanceAu: 19.19, size: 0.54, speed: 0.045, phase: 1.17, inclination: 0.07, ringColor: '#91a9b4' },
+  { name: 'Neptune', model: neptuneUrl, texture: neptuneTextureUrl, distanceAu: 30.06, size: 0.52, speed: 0.034, phase: 5.38, inclination: -0.06 },
 ]
+
+const planets: PlanetSpec[] = (() => {
+  let previousOrbit = 0
+  let previousSize = 1.32
+  const minimumSurfaceGap = 0.18
+
+  return planetInputs.map(({ distanceAu, ...planet }) => {
+    const naturalOrbit = orbitFromAu(distanceAu)
+    const clearanceOrbit = previousOrbit + previousSize + planet.size + minimumSurfaceGap
+    const orbit = Math.max(naturalOrbit, clearanceOrbit)
+    previousOrbit = orbit
+    previousSize = planet.size
+    return { ...planet, orbit }
+  })
+})()
 
 const PLANET_SPIN_SPEED = 0.24
 
@@ -94,6 +129,169 @@ function Model({ url, radius, isSun = false }: { url: string; radius: number; is
   }, [scene, radius, isSun])
 
   return <primitive object={model} />
+}
+
+const sunVertexShader = `
+  varying vec3 vLocalPosition;
+  varying vec3 vWorldPosition;
+
+  void main() {
+    vLocalPosition = position;
+    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPosition.xyz;
+    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+  }
+`
+
+const sunFragmentShader = `
+  uniform float uTime;
+  varying vec3 vLocalPosition;
+  varying vec3 vWorldPosition;
+
+  float hash(vec3 p) {
+    p = fract(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+  }
+
+  float noise(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+      mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+      f.z
+    );
+  }
+
+  float fbm(vec3 p) {
+    float value = 0.0;
+    float amplitude = 0.55;
+    for (int i = 0; i < 4; i++) {
+      value += noise(p) * amplitude;
+      p = p * 2.03 + vec3(1.7, 3.1, 2.4);
+      amplitude *= 0.48;
+    }
+    return value;
+  }
+
+  void main() {
+    vec3 p = normalize(vLocalPosition);
+    float broad = fbm(p * 3.3 + vec3(0.0, uTime * 0.045, uTime * 0.025));
+    float detail = fbm(p * 8.0 - vec3(uTime * 0.035, 0.0, uTime * 0.02));
+    float heat = smoothstep(0.18, 0.92, broad * 0.72 + detail * 0.4);
+
+    vec3 faceNormal = normalize(cross(dFdx(vWorldPosition), dFdy(vWorldPosition)));
+    float facetLight = 0.76 + 0.24 * abs(dot(faceNormal, normalize(vec3(0.35, 0.8, 0.5))));
+    vec3 ember = vec3(1.12, 0.11, 0.018);
+    vec3 gold = vec3(2.15, 0.56, 0.065);
+    vec3 whiteHot = vec3(3.05, 1.25, 0.28);
+    vec3 color = mix(ember, gold, heat);
+    color = mix(color, whiteHot, smoothstep(0.66, 0.96, heat));
+    gl_FragColor = vec4(color * facetLight, 1.0);
+  }
+`
+
+function Sun({ radius }: { radius: number }) {
+  const { scene } = useGLTF(sunUrl) as GLTF
+  const material = useMemo(() => new ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: sunVertexShader,
+    fragmentShader: sunFragmentShader,
+  }), [])
+
+  const model = useMemo(() => {
+    const copy = scene.clone(true)
+    copy.traverse((child) => {
+      if (child instanceof Mesh) {
+        child.material = material
+        child.castShadow = false
+        child.receiveShadow = false
+      }
+    })
+    const box = new Box3().setFromObject(copy)
+    const center = box.getCenter(new Vector3())
+    const size = box.getSize(new Vector3())
+    copy.position.sub(center)
+    copy.scale.setScalar((radius * 2) / (Math.max(size.x, size.y, size.z) || 1))
+    return copy
+  }, [scene, material, radius])
+
+  useFrame((_, delta) => {
+    material.uniforms.uTime.value += delta
+  })
+
+  useEffect(() => () => material.dispose(), [material])
+  return <primitive object={model} />
+}
+
+function SpaceBackdrop({ onClearFocus }: { onClearFocus: () => void }) {
+  return (
+    <mesh scale={62} onClick={onClearFocus}>
+      <sphereGeometry args={[1, 32, 24]} />
+      <shaderMaterial
+        side={BackSide}
+        depthWrite={false}
+        vertexShader={`
+          varying vec3 vDirection;
+          void main() {
+            vDirection = normalize(position);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `}
+        fragmentShader={`
+          varying vec3 vDirection;
+
+          float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+          float noise(vec3 p) {
+            vec3 i = floor(p), f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y), mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+          }
+          float fbm(vec3 p) {
+            float n = 0.0;
+            n += noise(p) * 0.55; p *= 2.03;
+            n += noise(p) * 0.28; p *= 2.07;
+            n += noise(p) * 0.14;
+            return n;
+          }
+          void main() {
+            vec3 d = normalize(vDirection);
+            float bend = d.y + 0.15 * sin(d.x * 5.0) - 0.08 * sin(d.z * 7.0);
+            float milkyWay = exp(-bend * bend * 15.0);
+            float cloud = fbm(d * 5.2 + vec3(2.1, 0.4, 1.7));
+            float dust = smoothstep(0.36, 0.82, cloud) * milkyWay;
+            vec3 night = vec3(0.002, 0.006, 0.016);
+            vec3 blue = vec3(0.018, 0.065, 0.145);
+            vec3 violet = vec3(0.055, 0.035, 0.105);
+            vec3 color = night + mix(blue, violet, cloud) * dust * 0.68;
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `}
+      />
+    </mesh>
+  )
+}
+
+function BloomEffect() {
+  const { gl, scene, camera, size } = useThree()
+  const composer = useMemo(() => {
+    const nextComposer = new EffectComposer(gl)
+    nextComposer.addPass(new RenderPass(scene, camera))
+    nextComposer.addPass(new UnrealBloomPass(new Vector2(1, 1), 0.82, 0.52, 0.94))
+    nextComposer.addPass(new OutputPass())
+    return nextComposer
+  }, [gl, scene, camera])
+
+  useEffect(() => {
+    composer.setPixelRatio(Math.min(gl.getPixelRatio(), 1.5))
+    composer.setSize(size.width, size.height)
+  }, [composer, gl, size])
+
+  useEffect(() => () => composer.dispose(), [composer])
+  useFrame(() => composer.render(), 1)
+  return null
 }
 
 function createSphericalUvGeometry(source: BufferGeometry) {
@@ -248,7 +446,7 @@ function Moon({ paused, labels }: { paused: boolean; labels: boolean }) {
   )
 }
 
-function Orbit({ radius }: { radius: number }) {
+function Orbit({ radius, inclination }: { radius: number; inclination: number }) {
   const points = useMemo(
     () => Array.from({ length: 97 }, (_, index) => {
       const angle = (index / 96) * Math.PI * 2
@@ -256,10 +454,81 @@ function Orbit({ radius }: { radius: number }) {
     }),
     [radius],
   )
-  return <Line points={points} color="#bb8d66" transparent opacity={0.27} lineWidth={0.55} />
+  return (
+    <group rotation={[inclination, 0, 0]}>
+      <Line points={points} color="#bb8d66" transparent opacity={0.27} lineWidth={0.55} />
+    </group>
+  )
 }
 
-function Planet({ planet, paused, labels }: { planet: PlanetSpec; paused: boolean; labels: boolean }) {
+type FocusTarget = {
+  object: Object3D
+  distance: number
+  name: string
+}
+
+function CameraFocus({
+  focus,
+  returningHome,
+  controlsRef,
+  onReturnComplete,
+}: {
+  focus: FocusTarget | null
+  returningHome: boolean
+  controlsRef: RefObject<OrbitControlsImpl | null>
+  onReturnComplete: () => void
+}) {
+  const { camera } = useThree()
+  const worldPosition = useMemo(() => new Vector3(), [])
+  const desiredPosition = useMemo(() => new Vector3(), [])
+  const viewDirection = useMemo(() => new Vector3(), [])
+  const systemTarget = useMemo(() => new Vector3(2.4, 0, 0), [])
+  const homePosition = useMemo(() => new Vector3(0.1, 5.8, 21), [])
+
+  useFrame((_, delta) => {
+    const controls = controlsRef.current
+    if (!controls) return
+    if (focus) {
+      const focusBlend = 1 - Math.exp(-delta * 3.2)
+      focus.object.getWorldPosition(worldPosition)
+      viewDirection.copy(camera.position).sub(controls.target).normalize()
+      desiredPosition.copy(worldPosition).addScaledVector(viewDirection, focus.distance)
+      controls.target.lerp(worldPosition, focusBlend)
+      camera.position.lerp(desiredPosition, focusBlend)
+      controls.update()
+      return
+    }
+
+    if (!returningHome) return
+
+    const returnBlend = 1 - Math.exp(-delta * 1.05)
+    controls.target.lerp(systemTarget, returnBlend)
+    camera.position.lerp(homePosition, returnBlend)
+    controls.update()
+    if (camera.position.distanceTo(homePosition) < 0.025 && controls.target.distanceTo(systemTarget) < 0.025) {
+      camera.position.copy(homePosition)
+      controls.target.copy(systemTarget)
+      controls.update()
+      onReturnComplete()
+    }
+  })
+
+  return null
+}
+
+function Planet({
+  planet,
+  paused,
+  labels,
+  focused,
+  onFocus,
+}: {
+  planet: PlanetSpec
+  paused: boolean
+  labels: boolean
+  focused: boolean
+  onFocus: (target: FocusTarget) => void
+}) {
   const orbitingRef = useRef<Group>(null)
   const planetRef = useRef<Group>(null)
 
@@ -270,9 +539,18 @@ function Planet({ planet, paused, labels }: { planet: PlanetSpec; paused: boolea
   })
 
   return (
-    <group rotation={[planet.inclination, planet.phase, 0]}>
-      <group ref={orbitingRef}>
-        <group ref={planetRef} position={[planet.orbit, 0, 0]}>
+    <group rotation={[planet.inclination, 0, 0]}>
+      <group ref={orbitingRef} rotation={[0, planet.phase, 0]}>
+        <group
+          ref={planetRef}
+          position={[planet.orbit, 0, 0]}
+          onClick={(event) => {
+            event.stopPropagation()
+            if (planetRef.current) onFocus({ object: planetRef.current, distance: Math.max(2.2, planet.size * 4.3), name: planet.name })
+          }}
+          onPointerEnter={() => { document.body.style.cursor = 'pointer' }}
+          onPointerLeave={() => { document.body.style.cursor = '' }}
+        >
           <TexturedModel
             url={planet.model}
             textureUrl={planet.texture}
@@ -282,7 +560,7 @@ function Planet({ planet, paused, labels }: { planet: PlanetSpec; paused: boolea
             paused={paused}
           />
           {planet.name === 'Earth' && <Moon paused={paused} labels={labels} />}
-          {labels && (
+          {(labels || focused) && (
             <Html center position={[0, planet.size + 0.34, 0]} distanceFactor={11} zIndexRange={[10, 0]}>
               <span className="planet-label">{planet.name}</span>
             </Html>
@@ -293,7 +571,7 @@ function Planet({ planet, paused, labels }: { planet: PlanetSpec; paused: boolea
   )
 }
 
-function SolarSystem({ paused, labels }: { paused: boolean; labels: boolean }) {
+function SolarSystem({ paused, labels, focus, onFocus }: { paused: boolean; labels: boolean; focus: FocusTarget | null; onFocus: (target: FocusTarget) => void }) {
   const systemRef = useRef<Group>(null)
 
   useFrame(({ pointer }, delta) => {
@@ -304,26 +582,59 @@ function SolarSystem({ paused, labels }: { paused: boolean; labels: boolean }) {
 
   return (
     <group ref={systemRef} position={[2.7, 0.1, 0]} rotation={[0.12, -0.18, -0.12]}>
-      <Model url={sunUrl} radius={1.32} isSun />
-      <pointLight color="#ff9a45" intensity={82} distance={19} decay={2} />
-      <Sparkles count={48} scale={2.6} size={5} speed={0.25} color="#ffb862" opacity={0.55} />
-      {planets.map((planet) => <Orbit key={`orbit-${planet.name}`} radius={planet.orbit} />)}
-      {planets.map((planet) => <Planet key={planet.name} planet={planet} paused={paused} labels={labels} />)}
+      <Sun radius={1.32} />
+      <pointLight color="#ff8a32" intensity={96} distance={20} decay={2} />
+      {planets.map((planet) => <Orbit key={`orbit-${planet.name}`} radius={planet.orbit} inclination={planet.inclination} />)}
+      {planets.map((planet) => (
+        <Planet
+          key={planet.name}
+          planet={planet}
+          paused={paused}
+          labels={labels}
+          focused={focus?.name === planet.name}
+          onFocus={onFocus}
+        />
+      ))}
     </group>
   )
 }
 
 function Scene({ paused, labels }: { paused: boolean; labels: boolean }) {
+  const [focus, setFocus] = useState<FocusTarget | null>(null)
+  const [returningHome, setReturningHome] = useState(false)
+  const controlsRef = useRef<OrbitControlsImpl>(null)
+
+  const focusPlanet = (target: FocusTarget) => {
+    setReturningHome(false)
+    setFocus(target)
+  }
+
+  const clearFocus = () => {
+    if (!focus) return
+    setFocus(null)
+    setReturningHome(true)
+  }
+
   return (
     <>
       <color attach="background" args={['#03060d']} />
       <fog attach="fog" args={['#03060d', 19, 34]} />
+      <SpaceBackdrop onClearFocus={clearFocus} />
       <ambientLight intensity={0.3} color="#7f95bc" />
       <hemisphereLight args={['#6c82a8', '#160b07', 0.48]} />
-      <Stars radius={75} depth={42} count={2200} factor={2.7} saturation={0.35} fade speed={paused ? 0 : 0.12} />
-      <Suspense fallback={null}><SolarSystem paused={paused} labels={labels} /></Suspense>
-      <OrbitControls makeDefault enablePan={false} minDistance={12} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={[2.4, 0, 0]} autoRotate={!paused} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
+      <Stars radius={48} depth={28} count={5200} factor={2.25} saturation={0.42} fade speed={paused ? 0 : 0.08} />
+      <Stars radius={34} depth={18} count={680} factor={4.1} saturation={0.72} fade speed={paused ? 0 : 0.045} />
+      <Sparkles count={160} scale={[48, 24, 32]} size={1.35} speed={paused ? 0 : 0.025} color="#8fb9ff" opacity={0.32} />
+      <Suspense fallback={null}><SolarSystem paused={paused} labels={labels} focus={focus} onFocus={focusPlanet} /></Suspense>
+      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={[2.4, 0, 0]} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
+      <CameraFocus
+        focus={focus}
+        returningHome={returningHome}
+        controlsRef={controlsRef}
+        onReturnComplete={() => setReturningHome(false)}
+      />
       <AdaptiveDpr pixelated />
+      <BloomEffect />
     </>
   )
 }
@@ -341,7 +652,7 @@ function App() {
   return (
     <main className="experience">
       <div className="scene" aria-hidden="true">
-        <Canvas camera={{ position: [0.1, 4.9, 17.2], fov: 46, near: 0.1, far: 120 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}>
+        <Canvas camera={{ position: [0.1, 5.8, 21], fov: 46, near: 0.1, far: 120 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}>
           <Scene paused={paused} labels={labels} />
         </Canvas>
       </div>
@@ -374,7 +685,7 @@ function App() {
         </div>
       </aside>
 
-      <div className="drag-hint" aria-hidden="true"><span /> Drag to explore</div>
+      <div className="drag-hint" aria-hidden="true"><span /> Drag · click a planet</div>
       <div className="side-note left">Curiosity<br />builds<br />better worlds</div>
       <div className="section-anchor" id="projects" aria-hidden="true" />
       <div className="section-anchor" id="about" aria-hidden="true" />
