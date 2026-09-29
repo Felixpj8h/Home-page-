@@ -482,8 +482,8 @@ function CameraFocus({
   const worldPosition = useMemo(() => new Vector3(), [])
   const desiredPosition = useMemo(() => new Vector3(), [])
   const viewDirection = useMemo(() => new Vector3(), [])
-  const systemTarget = useMemo(() => new Vector3(2.4, 0, 0), [])
-  const homePosition = useMemo(() => new Vector3(0.1, 5.8, 21), [])
+  const systemTarget = useMemo(() => new Vector3(-1.75, 0, 0), [])
+  const homePosition = useMemo(() => new Vector3(-4.05, 5.8, 21), [])
 
   useFrame((_, delta) => {
     const controls = controlsRef.current
@@ -620,13 +620,14 @@ function Scene({ paused, labels }: { paused: boolean; labels: boolean }) {
       <color attach="background" args={['#03060d']} />
       <fog attach="fog" args={['#03060d', 19, 34]} />
       <SpaceBackdrop onClearFocus={clearFocus} />
-      <ambientLight intensity={0.3} color="#7f95bc" />
-      <hemisphereLight args={['#6c82a8', '#160b07', 0.48]} />
+      <ambientLight intensity={0.72} color="#8fa8d2" />
+      <hemisphereLight args={['#9bb9e8', '#2a1714', 0.92]} />
+      <directionalLight position={[-8, 7, 12]} color="#a9c8ff" intensity={1.35} />
       <Stars radius={48} depth={28} count={5200} factor={2.25} saturation={0.42} fade speed={paused ? 0 : 0.08} />
       <Stars radius={34} depth={18} count={680} factor={4.1} saturation={0.72} fade speed={paused ? 0 : 0.045} />
       <Sparkles count={160} scale={[48, 24, 32]} size={1.35} speed={paused ? 0 : 0.025} color="#8fb9ff" opacity={0.32} />
       <Suspense fallback={null}><SolarSystem paused={paused} labels={labels} focus={focus} onFocus={focusPlanet} /></Suspense>
-      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={[2.4, 0, 0]} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
+      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={[-1.75, 0, 0]} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
       <CameraFocus
         focus={focus}
         returningHome={returningHome}
@@ -652,7 +653,7 @@ function App() {
   return (
     <main className="experience">
       <div className="scene" aria-hidden="true">
-        <Canvas camera={{ position: [0.1, 5.8, 21], fov: 46, near: 0.1, far: 120 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}>
+        <Canvas camera={{ position: [-4.05, 5.8, 21], fov: 46, near: 0.1, far: 120 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}>
           <Scene paused={paused} labels={labels} />
         </Canvas>
       </div>
