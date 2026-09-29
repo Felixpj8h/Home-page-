@@ -1,14 +1,17 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
-import { AdaptiveDpr, Html, Line, OrbitControls, Sparkles, Stars, useGLTF, useTexture } from '@react-three/drei'
+import { AdaptiveDpr, Html, Line, OrbitControls, Stars, useGLTF, useTexture } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
+  AdditiveBlending,
   BackSide,
   Box3,
   BufferGeometry,
+  Color,
   DoubleSide,
   Float32BufferAttribute,
   Group,
+  InstancedMesh,
   Mesh,
   MeshStandardMaterial,
   Object3D,
@@ -48,7 +51,8 @@ type PlanetSpec = {
   texture: string
   orbit: number
   size: number
-  speed: number
+  periodYears: number
+  eccentricity: number
   phase: number
   inclination: number
   ringColor?: string
@@ -66,14 +70,14 @@ const orbitFromAu = (distanceAu: number) => {
 type PlanetInput = Omit<PlanetSpec, 'orbit'> & { distanceAu: number }
 
 const planetInputs: PlanetInput[] = [
-  { name: 'Mercury', model: moonUrl, texture: mercuryTextureUrl, distanceAu: 0.39, size: 0.18, speed: 0.33, phase: 4.1, inclination: 0.08 },
-  { name: 'Venus', model: venusUrl, texture: venusTextureUrl, distanceAu: 0.72, size: 0.3, speed: 0.24, phase: 2.8, inclination: -0.04 },
-  { name: 'Earth', model: earthUrl, texture: earthTextureUrl, distanceAu: 1, size: 0.36, speed: 0.19, phase: 0.32, inclination: 0.03 },
-  { name: 'Mars', model: marsUrl, texture: marsTextureUrl, distanceAu: 1.52, size: 0.25, speed: 0.155, phase: 3.55, inclination: -0.08 },
-  { name: 'Jupiter', model: jupiterUrl, texture: jupiterTextureUrl, distanceAu: 5.2, size: 0.78, speed: 0.09, phase: 0.05, inclination: 0.04 },
-  { name: 'Saturn', model: saturnUrl, texture: saturnTextureUrl, distanceAu: 9.54, size: 0.9, speed: 0.065, phase: 3.02, inclination: -0.035, ringColor: '#c9aa78' },
-  { name: 'Uranus', model: uranusUrl, texture: uranusTextureUrl, distanceAu: 19.19, size: 0.54, speed: 0.045, phase: 1.17, inclination: 0.07, ringColor: '#91a9b4' },
-  { name: 'Neptune', model: neptuneUrl, texture: neptuneTextureUrl, distanceAu: 30.06, size: 0.52, speed: 0.034, phase: 5.38, inclination: -0.06 },
+  { name: 'Mercury', model: moonUrl, texture: mercuryTextureUrl, distanceAu: 0.39, size: 0.18, periodYears: 0.241, eccentricity: 0.206, phase: 4.1, inclination: 0.122 },
+  { name: 'Venus', model: venusUrl, texture: venusTextureUrl, distanceAu: 0.72, size: 0.3, periodYears: 0.615, eccentricity: 0.007, phase: 2.8, inclination: 0.059 },
+  { name: 'Earth', model: earthUrl, texture: earthTextureUrl, distanceAu: 1, size: 0.36, periodYears: 1, eccentricity: 0.017, phase: 0.32, inclination: 0 },
+  { name: 'Mars', model: marsUrl, texture: marsTextureUrl, distanceAu: 1.52, size: 0.25, periodYears: 1.881, eccentricity: 0.093, phase: 3.55, inclination: 0.032 },
+  { name: 'Jupiter', model: jupiterUrl, texture: jupiterTextureUrl, distanceAu: 5.2, size: 0.78, periodYears: 11.862, eccentricity: 0.049, phase: 0.05, inclination: 0.023 },
+  { name: 'Saturn', model: saturnUrl, texture: saturnTextureUrl, distanceAu: 9.54, size: 0.9, periodYears: 29.457, eccentricity: 0.057, phase: 3.02, inclination: 0.043, ringColor: '#c9aa78' },
+  { name: 'Uranus', model: uranusUrl, texture: uranusTextureUrl, distanceAu: 19.19, size: 0.54, periodYears: 84.011, eccentricity: 0.046, phase: 1.17, inclination: 0.013, ringColor: '#91a9b4' },
+  { name: 'Neptune', model: neptuneUrl, texture: neptuneTextureUrl, distanceAu: 30.06, size: 0.52, periodYears: 164.79, eccentricity: 0.011, phase: 5.38, inclination: 0.031 },
 ]
 
 const planets: PlanetSpec[] = (() => {
@@ -226,9 +230,19 @@ function Sun({ radius }: { radius: number }) {
   return <primitive object={model} />
 }
 
-function SpaceBackdrop({ onClearFocus }: { onClearFocus: () => void }) {
+function SpaceBackdrop({ onClearFocus, paused }: { onClearFocus: () => void; paused: boolean }) {
+  const backdropRef = useRef<Mesh>(null)
+
+  useFrame(({ pointer }, delta) => {
+    if (!backdropRef.current) return
+    const response = Math.min(delta * 0.24, 1)
+    backdropRef.current.rotation.x += (pointer.y * 0.018 - backdropRef.current.rotation.x) * response
+    backdropRef.current.rotation.y += (pointer.x * 0.025 - backdropRef.current.rotation.y) * response
+    if (!paused) backdropRef.current.rotation.z += delta * 0.00035
+  })
+
   return (
-    <mesh scale={62} onClick={onClearFocus}>
+    <mesh ref={backdropRef} scale={62} onClick={onClearFocus}>
       <sphereGeometry args={[1, 32, 24]} />
       <shaderMaterial
         side={BackSide}
@@ -262,15 +276,47 @@ function SpaceBackdrop({ onClearFocus }: { onClearFocus: () => void }) {
             float milkyWay = exp(-bend * bend * 15.0);
             float cloud = fbm(d * 5.2 + vec3(2.1, 0.4, 1.7));
             float dust = smoothstep(0.36, 0.82, cloud) * milkyWay;
+            float secondBand = exp(-pow(d.y - 0.28 + 0.12 * sin(d.z * 4.0), 2.0) * 24.0);
+            float distantCloud = smoothstep(0.48, 0.84, fbm(d * 8.0 - vec3(1.4, 2.2, 0.3))) * secondBand;
             vec3 night = vec3(0.002, 0.006, 0.016);
             vec3 blue = vec3(0.018, 0.065, 0.145);
             vec3 violet = vec3(0.055, 0.035, 0.105);
-            vec3 color = night + mix(blue, violet, cloud) * dust * 0.68;
+            vec3 color = night + mix(blue, violet, cloud) * dust * 0.68 + vec3(0.018, 0.03, 0.075) * distantCloud * 0.36;
             gl_FragColor = vec4(color, 1.0);
           }
         `}
       />
     </mesh>
+  )
+}
+
+function DepthLayers({ paused }: { paused: boolean }) {
+  const farRef = useRef<Group>(null)
+  const nearRef = useRef<Group>(null)
+
+  useFrame(({ pointer }, delta) => {
+    const response = Math.min(delta * 0.45, 1)
+    if (farRef.current) {
+      farRef.current.position.x += (-pointer.x * 0.34 - farRef.current.position.x) * response
+      farRef.current.position.y += (-pointer.y * 0.22 - farRef.current.position.y) * response
+      if (!paused) farRef.current.rotation.y += delta * 0.0009
+    }
+    if (nearRef.current) {
+      nearRef.current.position.x += (-pointer.x * 0.72 - nearRef.current.position.x) * response
+      nearRef.current.position.y += (-pointer.y * 0.46 - nearRef.current.position.y) * response
+      if (!paused) nearRef.current.rotation.y -= delta * 0.0015
+    }
+  })
+
+  return (
+    <>
+      <group ref={farRef}>
+        <Stars radius={48} depth={28} count={5200} factor={2.1} saturation={0.42} fade speed={paused ? 0 : 0.05} />
+      </group>
+      <group ref={nearRef}>
+        <Stars radius={33} depth={16} count={260} factor={5.2} saturation={0.68} fade speed={paused ? 0 : 0.025} />
+      </group>
+    </>
   )
 }
 
@@ -425,6 +471,149 @@ function TexturedModel({
   return <primitive object={model} />
 }
 
+const atmosphereColors: Record<string, string> = {
+  Venus: '#d7a66f',
+  Earth: '#4fa8ff',
+  Mars: '#ff654a',
+  Uranus: '#83ddeb',
+  Neptune: '#4e79ff',
+}
+
+function Atmosphere({ radius, color, intensity = 1 }: { radius: number; color: string; intensity?: number }) {
+  const uniforms = useMemo(() => ({
+    uColor: { value: new Color(color) },
+    uIntensity: { value: intensity },
+  }), [color, intensity])
+
+  return (
+    <mesh scale={radius * 1.05}>
+      <icosahedronGeometry args={[1, 3]} />
+      <shaderMaterial
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={AdditiveBlending}
+        vertexShader={`
+          varying vec3 vViewNormal;
+          varying vec3 vViewPosition;
+          void main() {
+            vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+            vViewPosition = viewPosition.xyz;
+            vViewNormal = normalize(normalMatrix * normal);
+            gl_Position = projectionMatrix * viewPosition;
+          }
+        `}
+        fragmentShader={`
+          uniform vec3 uColor;
+          uniform float uIntensity;
+          varying vec3 vViewNormal;
+          varying vec3 vViewPosition;
+          void main() {
+            vec3 viewDirection = normalize(-vViewPosition);
+            float rim = pow(1.0 - max(dot(normalize(vViewNormal), viewDirection), 0.0), 2.7);
+            float alpha = smoothstep(0.12, 0.98, rim) * 0.2 * uIntensity;
+            gl_FragColor = vec4(uColor * (0.28 + rim * 0.42) * uIntensity, alpha);
+          }
+        `}
+      />
+    </mesh>
+  )
+}
+
+function EarthAtmosphere({ radius }: { radius: number }) {
+  const atmosphereRef = useRef<Group>(null)
+  const atmosphereWorld = useMemo(() => new Vector3(), [])
+  const sunWorld = useMemo(() => new Vector3(), [])
+  const sunDirection = useMemo(() => new Vector3(1, 0, 0), [])
+  const shells = useMemo(() => Array.from({ length: 20 }, (_, index) => {
+    const height = index / 19
+    return {
+      scale: 1.018 + height * 0.402,
+      density: 0.23 * Math.exp(-height * 3.7),
+      height,
+    }
+  }).map((shell) => ({
+    ...shell,
+    uniforms: {
+      uSunDirection: { value: sunDirection },
+      uRayleighColor: { value: new Color('#2f7dff') },
+      uLowAtmosphereColor: { value: new Color('#a8efff') },
+      uUpperAtmosphereColor: { value: new Color('#7058ff') },
+      uSunsetColor: { value: new Color('#ff8f5f') },
+      uDensity: { value: shell.density },
+      uHeight: { value: shell.height },
+    },
+  })), [sunDirection])
+
+  useFrame(() => {
+    const atmosphere = atmosphereRef.current
+    const system = atmosphere?.parent?.parent?.parent
+    if (!atmosphere || !system) return
+
+    atmosphere.getWorldPosition(atmosphereWorld)
+    sunWorld.set(0, 0, 0)
+    system.localToWorld(sunWorld)
+    sunDirection.copy(sunWorld).sub(atmosphereWorld).normalize()
+  })
+
+  return (
+    <group ref={atmosphereRef}>
+      {shells.map((shell) => (
+        <mesh key={shell.scale} scale={radius * shell.scale}>
+          <sphereGeometry args={[1, 48, 32]} />
+          <shaderMaterial
+            uniforms={shell.uniforms}
+            transparent
+            depthWrite={false}
+            blending={AdditiveBlending}
+            side={BackSide}
+            vertexShader={`
+              varying vec3 vWorldNormal;
+              varying vec3 vWorldPosition;
+              void main() {
+                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = worldPosition.xyz;
+                vWorldNormal = normalize(mat3(modelMatrix) * normal);
+                gl_Position = projectionMatrix * viewMatrix * worldPosition;
+              }
+            `}
+            fragmentShader={`
+              uniform vec3 uSunDirection;
+              uniform vec3 uRayleighColor;
+              uniform vec3 uLowAtmosphereColor;
+              uniform vec3 uUpperAtmosphereColor;
+              uniform vec3 uSunsetColor;
+              uniform float uDensity;
+              uniform float uHeight;
+              varying vec3 vWorldNormal;
+              varying vec3 vWorldPosition;
+
+              void main() {
+                vec3 normal = normalize(vWorldNormal);
+                vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+                float viewDot = abs(dot(normal, viewDirection));
+                float sunDot = dot(normal, normalize(uSunDirection));
+                float horizon = pow(1.0 - viewDot, mix(1.7, 2.8, uHeight));
+                float daylight = smoothstep(-0.22, 0.42, sunDot);
+                float terminator = exp(-pow((sunDot + 0.03) * 5.0, 2.0));
+                float forwardScatter = pow(max(dot(viewDirection, normalize(uSunDirection)), 0.0), 6.0);
+
+                vec3 layerColor = mix(uLowAtmosphereColor, uRayleighColor, smoothstep(0.0, 0.68, uHeight));
+                layerColor = mix(layerColor, uUpperAtmosphereColor, smoothstep(0.68, 1.0, uHeight));
+                vec3 rayleigh = layerColor * horizon * (0.55 + daylight * 0.95);
+                vec3 sunset = uSunsetColor * horizon * terminator * (0.24 + forwardScatter * 0.58);
+                float alpha = horizon * (0.38 + daylight * 0.58) * uDensity * 2.6;
+                vec3 scattering = (rayleigh + sunset) * uDensity * 3.4;
+                gl_FragColor = vec4(scattering, clamp(alpha, 0.0, 0.3));
+              }
+            `}
+          />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 function Moon({ paused, labels }: { paused: boolean; labels: boolean }) {
   const ref = useRef<Group>(null)
 
@@ -446,17 +635,71 @@ function Moon({ paused, labels }: { paused: boolean; labels: boolean }) {
   )
 }
 
-function Orbit({ radius, inclination }: { radius: number; inclination: number }) {
+function Orbit({ radius, eccentricity, inclination }: { radius: number; eccentricity: number; inclination: number }) {
+  const safeRadius = Number.isFinite(radius) ? radius : 1
+  const safeEccentricity = Number.isFinite(eccentricity) ? Math.min(Math.abs(eccentricity), 0.95) : 0
+  const semiMinorAxis = safeRadius * Math.sqrt(1 - safeEccentricity * safeEccentricity)
   const points = useMemo(
     () => Array.from({ length: 97 }, (_, index) => {
       const angle = (index / 96) * Math.PI * 2
-      return new Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
+      return new Vector3(Math.cos(angle) * safeRadius, 0, Math.sin(angle) * semiMinorAxis)
     }),
-    [radius],
+    [safeRadius, semiMinorAxis],
   )
   return (
     <group rotation={[inclination, 0, 0]}>
       <Line points={points} color="#bb8d66" transparent opacity={0.27} lineWidth={0.55} />
+    </group>
+  )
+}
+
+function AsteroidBelt({ paused }: { paused: boolean }) {
+  const beltRef = useRef<Group>(null)
+  const meshRef = useRef<InstancedMesh>(null)
+  const count = 280
+  const marsOrbit = planets.find((planet) => planet.name === 'Mars')?.orbit ?? 4.1
+  const jupiterOrbit = planets.find((planet) => planet.name === 'Jupiter')?.orbit ?? 5.5
+
+  const asteroids = useMemo(() => {
+    let seed = 918273
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0
+      return seed / 4294967296
+    }
+    return Array.from({ length: count }, (_, index) => {
+      const angle = (index / count) * Math.PI * 2 + (random() - 0.5) * 0.16
+      const radius = marsOrbit + 0.38 + random() * Math.max(0.2, jupiterOrbit - marsOrbit - 0.76)
+      return {
+        position: new Vector3(Math.cos(angle) * radius, (random() - 0.5) * 0.22, Math.sin(angle) * radius * 0.985),
+        rotation: new Vector3(random() * Math.PI, random() * Math.PI, random() * Math.PI),
+        scale: 0.018 + Math.pow(random(), 2.2) * 0.075,
+      }
+    })
+  }, [count, jupiterOrbit, marsOrbit])
+
+  useEffect(() => {
+    if (!meshRef.current) return
+    const dummy = new Object3D()
+    asteroids.forEach((asteroid, index) => {
+      dummy.position.copy(asteroid.position)
+      dummy.rotation.set(asteroid.rotation.x, asteroid.rotation.y, asteroid.rotation.z)
+      dummy.scale.setScalar(asteroid.scale)
+      dummy.updateMatrix()
+      meshRef.current?.setMatrixAt(index, dummy.matrix)
+    })
+    meshRef.current.instanceMatrix.needsUpdate = true
+  }, [asteroids])
+
+  useFrame((_, delta) => {
+    if (!paused && beltRef.current) beltRef.current.rotation.y += delta * 0.008
+  })
+
+  return (
+    <group ref={beltRef} rotation={[0.025, 0, -0.012]}>
+      <instancedMesh ref={meshRef} args={[undefined, undefined, count]} castShadow receiveShadow>
+        <icosahedronGeometry args={[1, 0]} />
+        <meshStandardMaterial color="#8d6550" roughness={0.96} metalness={0} flatShading />
+      </instancedMesh>
     </group>
   )
 }
@@ -529,43 +772,68 @@ function Planet({
   focused: boolean
   onFocus: (target: FocusTarget) => void
 }) {
-  const orbitingRef = useRef<Group>(null)
   const planetRef = useRef<Group>(null)
+  const orbitAngleRef = useRef(planet.phase)
+  const semiMinorAxis = planet.orbit * Math.sqrt(1 - planet.eccentricity * planet.eccentricity)
+  const orbitalSpeed = 0.18 / Math.pow(planet.periodYears, 0.4)
 
   useFrame((_, delta) => {
     if (paused) return
-    if (orbitingRef.current) orbitingRef.current.rotation.y += delta * planet.speed
-    if (planetRef.current) planetRef.current.rotation.y += delta * PLANET_SPIN_SPEED
+    orbitAngleRef.current += delta * orbitalSpeed
+    if (planetRef.current) {
+      planetRef.current.position.set(
+        Math.cos(orbitAngleRef.current) * planet.orbit,
+        0,
+        Math.sin(orbitAngleRef.current) * semiMinorAxis,
+      )
+      planetRef.current.rotation.y += delta * PLANET_SPIN_SPEED
+    }
   })
 
   return (
     <group rotation={[planet.inclination, 0, 0]}>
-      <group ref={orbitingRef} rotation={[0, planet.phase, 0]}>
-        <group
-          ref={planetRef}
-          position={[planet.orbit, 0, 0]}
-          onClick={(event) => {
-            event.stopPropagation()
-            if (planetRef.current) onFocus({ object: planetRef.current, distance: Math.max(2.2, planet.size * 4.3), name: planet.name })
-          }}
-          onPointerEnter={() => { document.body.style.cursor = 'pointer' }}
-          onPointerLeave={() => { document.body.style.cursor = '' }}
-        >
-          <TexturedModel
-            url={planet.model}
-            textureUrl={planet.texture}
-            radius={planet.size}
-            ringColor={planet.ringColor}
-            stableRing={planet.name === 'Uranus'}
-            paused={paused}
+      <group
+        ref={planetRef}
+        position={[
+          Math.cos(planet.phase) * planet.orbit,
+          0,
+          Math.sin(planet.phase) * semiMinorAxis,
+        ]}
+        onClick={(event) => {
+          event.stopPropagation()
+          if (planetRef.current) onFocus({ object: planetRef.current, distance: Math.max(2.2, planet.size * 4.3), name: planet.name })
+        }}
+        onPointerEnter={() => { document.body.style.cursor = 'pointer' }}
+        onPointerLeave={() => { document.body.style.cursor = '' }}
+      >
+        <TexturedModel
+          url={planet.model}
+          textureUrl={planet.texture}
+          radius={planet.size}
+          ringColor={planet.ringColor}
+          stableRing={planet.name === 'Uranus'}
+          paused={paused}
+        />
+        {planet.name === 'Earth' && <EarthAtmosphere radius={planet.size} />}
+        {planet.name !== 'Earth' && atmosphereColors[planet.name] && (
+          <Atmosphere
+            radius={
+              planet.name === 'Uranus'
+                ? planet.size * 0.55
+                : planet.name === 'Mars'
+                  ? planet.size * 1.12
+                  : planet.size
+            }
+            color={atmosphereColors[planet.name]}
+            intensity={planet.name === 'Mars' ? 0.8 : 1}
           />
-          {planet.name === 'Earth' && <Moon paused={paused} labels={labels} />}
-          {(labels || focused) && (
-            <Html center position={[0, planet.size + 0.34, 0]} distanceFactor={11} zIndexRange={[10, 0]}>
-              <span className="planet-label">{planet.name}</span>
-            </Html>
-          )}
-        </group>
+        )}
+        {planet.name === 'Earth' && <Moon paused={paused} labels={labels} />}
+        {(labels || focused) && (
+          <Html center position={[0, planet.size + 0.34, 0]} distanceFactor={11} zIndexRange={[10, 0]}>
+            <span className="planet-label">{planet.name}</span>
+          </Html>
+        )}
       </group>
     </group>
   )
@@ -584,7 +852,15 @@ function SolarSystem({ paused, labels, focus, onFocus }: { paused: boolean; labe
     <group ref={systemRef} position={[2.7, 0.1, 0]} rotation={[0.12, -0.18, -0.12]}>
       <Sun radius={1.32} />
       <pointLight color="#ff8a32" intensity={96} distance={20} decay={2} />
-      {planets.map((planet) => <Orbit key={`orbit-${planet.name}`} radius={planet.orbit} inclination={planet.inclination} />)}
+      {planets.map((planet) => (
+        <Orbit
+          key={`orbit-${planet.name}`}
+          radius={planet.orbit}
+          eccentricity={planet.eccentricity}
+          inclination={planet.inclination}
+        />
+      ))}
+      <AsteroidBelt paused={paused} />
       {planets.map((planet) => (
         <Planet
           key={planet.name}
@@ -619,13 +895,11 @@ function Scene({ paused, labels }: { paused: boolean; labels: boolean }) {
     <>
       <color attach="background" args={['#03060d']} />
       <fog attach="fog" args={['#03060d', 19, 34]} />
-      <SpaceBackdrop onClearFocus={clearFocus} />
+      <SpaceBackdrop onClearFocus={clearFocus} paused={paused} />
       <ambientLight intensity={0.72} color="#8fa8d2" />
       <hemisphereLight args={['#9bb9e8', '#2a1714', 0.92]} />
       <directionalLight position={[-8, 7, 12]} color="#a9c8ff" intensity={1.35} />
-      <Stars radius={48} depth={28} count={5200} factor={2.25} saturation={0.42} fade speed={paused ? 0 : 0.08} />
-      <Stars radius={34} depth={18} count={680} factor={4.1} saturation={0.72} fade speed={paused ? 0 : 0.045} />
-      <Sparkles count={160} scale={[48, 24, 32]} size={1.35} speed={paused ? 0 : 0.025} color="#8fb9ff" opacity={0.32} />
+      <DepthLayers paused={paused} />
       <Suspense fallback={null}><SolarSystem paused={paused} labels={labels} focus={focus} onFocus={focusPlanet} /></Suspense>
       <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={[-1.75, 0, 0]} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
       <CameraFocus
