@@ -15,6 +15,7 @@ import {
   Mesh,
   MeshStandardMaterial,
   Object3D,
+  PerspectiveCamera,
   RepeatWrapping,
   SRGBColorSpace,
   ShaderMaterial,
@@ -96,6 +97,9 @@ const planets: PlanetSpec[] = (() => {
 })()
 
 const PLANET_SPIN_SPEED = 0.24
+const SUN_X = 2.7
+const SUN_Y = 0.1
+const HOME_CAMERA_POSITION = new Vector3(-4.05, 5.8, 21)
 
 const allModels = [sunUrl, moonUrl, ...planets.map((planet) => planet.model)]
 allModels.forEach((model) => useGLTF.preload(model))
@@ -381,6 +385,7 @@ function TexturedModel({
   textureUrl,
   radius,
   ringColor,
+  flipTextureY = false,
   stableRing = false,
   paused = false,
 }: {
@@ -388,6 +393,7 @@ function TexturedModel({
   textureUrl: string
   radius: number
   ringColor?: string
+  flipTextureY?: boolean
   stableRing?: boolean
   paused?: boolean
 }) {
@@ -397,7 +403,7 @@ function TexturedModel({
 
   const model = useMemo(() => {
     texture.colorSpace = SRGBColorSpace
-    texture.flipY = false
+    texture.flipY = flipTextureY
     texture.wrapS = RepeatWrapping
     texture.needsUpdate = true
 
@@ -435,7 +441,7 @@ function TexturedModel({
     copy.position.sub(center)
     copy.scale.setScalar((radius * 2) / largestSide)
     return copy
-  }, [scene, texture, radius, ringColor])
+  }, [scene, texture, radius, ringColor, flipTextureY])
 
   const separatedModel = useMemo(() => {
     if (!stableRing) return null
@@ -473,11 +479,24 @@ function TexturedModel({
 
 const atmosphereColors: Record<string, string> = {
   Venus: '#d7a66f',
-  Earth: '#4fa8ff',
-  Mars: '#ff654a',
   Uranus: '#83ddeb',
   Neptune: '#4e79ff',
 }
+
+const layeredAtmosphereColors = {
+  Earth: {
+    rayleigh: '#2f7dff',
+    low: '#a8efff',
+    upper: '#7058ff',
+    sunset: '#ff8f5f',
+  },
+  Mars: {
+    rayleigh: '#f66b3c',
+    low: '#ffb477',
+    upper: '#c74737',
+    sunset: '#ffd08a',
+  },
+} as const
 
 function Atmosphere({ radius, color, intensity = 1 }: { radius: number; color: string; intensity?: number }) {
   const uniforms = useMemo(() => ({
@@ -520,11 +539,12 @@ function Atmosphere({ radius, color, intensity = 1 }: { radius: number; color: s
   )
 }
 
-function EarthAtmosphere({ radius }: { radius: number }) {
+function LayeredAtmosphere({ radius, planet }: { radius: number; planet: keyof typeof layeredAtmosphereColors }) {
   const atmosphereRef = useRef<Group>(null)
   const atmosphereWorld = useMemo(() => new Vector3(), [])
   const sunWorld = useMemo(() => new Vector3(), [])
   const sunDirection = useMemo(() => new Vector3(1, 0, 0), [])
+  const colors = layeredAtmosphereColors[planet]
   const shells = useMemo(() => Array.from({ length: 20 }, (_, index) => {
     const height = index / 19
     return {
@@ -536,14 +556,14 @@ function EarthAtmosphere({ radius }: { radius: number }) {
     ...shell,
     uniforms: {
       uSunDirection: { value: sunDirection },
-      uRayleighColor: { value: new Color('#2f7dff') },
-      uLowAtmosphereColor: { value: new Color('#a8efff') },
-      uUpperAtmosphereColor: { value: new Color('#7058ff') },
-      uSunsetColor: { value: new Color('#ff8f5f') },
+      uRayleighColor: { value: new Color(colors.rayleigh) },
+      uLowAtmosphereColor: { value: new Color(colors.low) },
+      uUpperAtmosphereColor: { value: new Color(colors.upper) },
+      uSunsetColor: { value: new Color(colors.sunset) },
       uDensity: { value: shell.density },
       uHeight: { value: shell.height },
     },
-  })), [sunDirection])
+  })), [sunDirection, colors])
 
   useFrame(() => {
     const atmosphere = atmosphereRef.current
@@ -725,8 +745,7 @@ function CameraFocus({
   const worldPosition = useMemo(() => new Vector3(), [])
   const desiredPosition = useMemo(() => new Vector3(), [])
   const viewDirection = useMemo(() => new Vector3(), [])
-  const systemTarget = useMemo(() => new Vector3(-1.75, 0, 0), [])
-  const homePosition = useMemo(() => new Vector3(-4.05, 5.8, 21), [])
+  const systemTarget = useMemo(() => new Vector3(SUN_X, SUN_Y, 0), [])
 
   useFrame((_, delta) => {
     const controls = controlsRef.current
@@ -736,7 +755,7 @@ function CameraFocus({
       focus.object.getWorldPosition(worldPosition)
       viewDirection.copy(camera.position).sub(controls.target).normalize()
       desiredPosition.copy(worldPosition).addScaledVector(viewDirection, focus.distance)
-      controls.target.lerp(worldPosition, focusBlend)
+      controls.target.copy(systemTarget)
       camera.position.lerp(desiredPosition, focusBlend)
       controls.update()
       return
@@ -746,10 +765,10 @@ function CameraFocus({
 
     const returnBlend = 1 - Math.exp(-delta * 1.05)
     controls.target.lerp(systemTarget, returnBlend)
-    camera.position.lerp(homePosition, returnBlend)
+    camera.position.lerp(HOME_CAMERA_POSITION, returnBlend)
     controls.update()
-    if (camera.position.distanceTo(homePosition) < 0.025 && controls.target.distanceTo(systemTarget) < 0.025) {
-      camera.position.copy(homePosition)
+    if (camera.position.distanceTo(HOME_CAMERA_POSITION) < 0.025 && controls.target.distanceTo(systemTarget) < 0.025) {
+      camera.position.copy(HOME_CAMERA_POSITION)
       controls.target.copy(systemTarget)
       controls.update()
       onReturnComplete()
@@ -811,21 +830,21 @@ function Planet({
           textureUrl={planet.texture}
           radius={planet.size}
           ringColor={planet.ringColor}
+          flipTextureY={planet.name === 'Earth'}
           stableRing={planet.name === 'Uranus'}
           paused={paused}
         />
-        {planet.name === 'Earth' && <EarthAtmosphere radius={planet.size} />}
-        {planet.name !== 'Earth' && atmosphereColors[planet.name] && (
+        {(planet.name === 'Earth' || planet.name === 'Mars') && (
+          <LayeredAtmosphere radius={planet.size} planet={planet.name} />
+        )}
+        {atmosphereColors[planet.name] && (
           <Atmosphere
             radius={
               planet.name === 'Uranus'
                 ? planet.size * 0.55
-                : planet.name === 'Mars'
-                  ? planet.size * 1.12
-                  : planet.size
+                : planet.size
             }
             color={atmosphereColors[planet.name]}
-            intensity={planet.name === 'Mars' ? 0.8 : 1}
           />
         )}
         {planet.name === 'Earth' && <Moon paused={paused} labels={labels} />}
@@ -849,7 +868,7 @@ function SolarSystem({ paused, labels, focus, onFocus }: { paused: boolean; labe
   })
 
   return (
-    <group ref={systemRef} position={[2.7, 0.1, 0]} rotation={[0.12, -0.18, -0.12]}>
+    <group ref={systemRef} position={[SUN_X, SUN_Y, 0]} rotation={[0.12, -0.18, -0.12]}>
       <Sun radius={1.32} />
       <pointLight color="#ff8a32" intensity={96} distance={20} decay={2} />
       {planets.map((planet) => (
@@ -901,7 +920,8 @@ function Scene({ paused, labels }: { paused: boolean; labels: boolean }) {
       <directionalLight position={[-8, 7, 12]} color="#a9c8ff" intensity={1.35} />
       <DepthLayers paused={paused} />
       <Suspense fallback={null}><SolarSystem paused={paused} labels={labels} focus={focus} onFocus={focusPlanet} /></Suspense>
-      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={[-1.75, 0, 0]} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
+      <CameraFraming />
+      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={24} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={[SUN_X, SUN_Y, 0]} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
       <CameraFocus
         focus={focus}
         returningHome={returningHome}
@@ -912,6 +932,23 @@ function Scene({ paused, labels }: { paused: boolean; labels: boolean }) {
       <BloomEffect />
     </>
   )
+}
+
+function CameraFraming() {
+  const { camera, size } = useThree()
+
+  useEffect(() => {
+    if (!(camera instanceof PerspectiveCamera)) return
+    const rightShift = size.width <= 520 ? 0.1 : size.width <= 900 ? 0.14 : 0.2
+    camera.setViewOffset(size.width, size.height, -size.width * rightShift, 0, size.width, size.height)
+    camera.updateProjectionMatrix()
+    return () => {
+      camera.clearViewOffset()
+      camera.updateProjectionMatrix()
+    }
+  }, [camera, size.width, size.height])
+
+  return null
 }
 
 function App() {
@@ -927,7 +964,7 @@ function App() {
   return (
     <main className="experience">
       <div className="scene" aria-hidden="true">
-        <Canvas camera={{ position: [-4.05, 5.8, 21], fov: 46, near: 0.1, far: 120 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}>
+        <Canvas camera={{ position: HOME_CAMERA_POSITION.toArray(), fov: 46, near: 0.1, far: 120 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}>
           <Scene paused={paused} labels={labels} />
         </Canvas>
       </div>
