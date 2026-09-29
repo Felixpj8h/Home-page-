@@ -890,36 +890,40 @@ function SolarSystem({ paused, labels, focus, onFocus }: { paused: boolean; labe
   )
 }
 
-function ZoomOutToProjects({
+function SceneWheelBoundary({
   controlsRef,
-  enabled,
+  focus,
+  returningHome,
+  onExitFocus,
 }: {
   controlsRef: RefObject<OrbitControlsImpl | null>
-  enabled: boolean
+  focus: FocusTarget | null
+  returningHome: boolean
+  onExitFocus: () => void
 }) {
   const { gl } = useThree()
-  const navigatingRef = useRef(false)
 
   useEffect(() => {
     const onWheel = (event: WheelEvent) => {
       const controls = controlsRef.current
-      if (!enabled || event.deltaY <= 0 || navigatingRef.current || !controls) return
-      if (controls.getDistance() < MAX_CAMERA_DISTANCE - 0.02) return
+      if (!controls) return
 
-      navigatingRef.current = true
-      document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })
-    }
-    const resetWhenBackAtTop = () => {
-      if (window.scrollY <= 1) navigatingRef.current = false
+      // OrbitControls prevents every wheel event over the canvas. At a page or
+      // camera boundary, let the browser handle the same event as page scroll.
+      const exitDistance = focus ? Math.max(5.5, focus.distance * 2.2) : MAX_CAMERA_DISTANCE
+      const handOffToPage = window.scrollY > 1 || returningHome ||
+        (event.deltaY > 0 && controls.getDistance() >= exitDistance - 0.15)
+      if (!handOffToPage && !event.ctrlKey && !event.metaKey) return
+
+      event.stopImmediatePropagation()
+      if (focus && handOffToPage && event.deltaY > 0) onExitFocus()
     }
 
     gl.domElement.addEventListener('wheel', onWheel, { capture: true, passive: true })
-    window.addEventListener('scroll', resetWhenBackAtTop)
     return () => {
       gl.domElement.removeEventListener('wheel', onWheel, true)
-      window.removeEventListener('scroll', resetWhenBackAtTop)
     }
-  }, [controlsRef, enabled, gl])
+  }, [controlsRef, focus, returningHome, onExitFocus, gl])
 
   return null
 }
@@ -930,6 +934,7 @@ function Scene({
   focus,
   returningHome,
   onFocus,
+  onExitFocus,
   onReturnComplete,
 }: {
   paused: boolean
@@ -937,6 +942,7 @@ function Scene({
   focus: FocusTarget | null
   returningHome: boolean
   onFocus: (target: FocusTarget) => void
+  onExitFocus: () => void
   onReturnComplete: () => void
 }) {
   const controlsRef = useRef<OrbitControlsImpl>(null)
@@ -952,8 +958,8 @@ function Scene({
       <DepthLayers paused={paused} />
       <Suspense fallback={null}><SolarSystem paused={paused} labels={labels} focus={focus} onFocus={onFocus} /></Suspense>
       <CameraFraming focused={Boolean(focus)} />
-      <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={1.7} maxDistance={MAX_CAMERA_DISTANCE} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={SUN_TARGET} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
-      <ZoomOutToProjects controlsRef={controlsRef} enabled={!focus && !returningHome} />
+      <OrbitControls ref={controlsRef} makeDefault enablePan={false} zoomSpeed={0.45} minDistance={focus || returningHome ? 2 : 11} maxDistance={MAX_CAMERA_DISTANCE} minPolarAngle={Math.PI * 0.27} maxPolarAngle={Math.PI * 0.7} target={SUN_TARGET} autoRotate={!paused && !focus && !returningHome} autoRotateSpeed={0.12} dampingFactor={0.06} enableDamping />
+      <SceneWheelBoundary controlsRef={controlsRef} focus={focus} returningHome={returningHome} onExitFocus={onExitFocus} />
       <CameraFocus
         focus={focus}
         returningHome={returningHome}
@@ -1022,7 +1028,7 @@ function App() {
     <section className="experience" id="home" aria-label="Introduction">
       <div className="scene" aria-hidden="true">
         <Canvas camera={{ position: HOME_CAMERA_POSITION.toArray(), fov: 46, near: 0.1, far: 120 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}>
-          <Scene paused={paused} labels={labels} focus={focus} returningHome={returningHome} onFocus={focusPlanet} onReturnComplete={() => setReturningHome(false)} />
+          <Scene paused={paused} labels={labels} focus={focus} returningHome={returningHome} onFocus={focusPlanet} onExitFocus={clearFocus} onReturnComplete={() => setReturningHome(false)} />
         </Canvas>
       </div>
       <div className="cosmic-haze" />
@@ -1032,8 +1038,8 @@ function App() {
         <button type="button" className="menu-toggle" aria-label="Toggle navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}><span /><span /></button>
         <nav className={menuOpen ? 'nav nav-open' : 'nav'} aria-label="Primary navigation">
           <a className="active" href="#home" onClick={() => setMenuOpen(false)}>Home</a>
-          <a href="#projects" onClick={() => setMenuOpen(false)}>Projects</a>
-          <a href="#about" onClick={() => setMenuOpen(false)}>About</a>
+          <a href="#projects" onClick={() => { setMenuOpen(false); clearFocus() }}>Projects</a>
+          <a href="#about" onClick={() => { setMenuOpen(false); clearFocus() }}>About</a>
           <a href="mailto:hello@felix.dev" onClick={() => setMenuOpen(false)}>Contact</a>
         </nav>
       </header>
@@ -1042,7 +1048,7 @@ function App() {
         <p className="eyebrow"><span>01</span> Portfolio / 2026</p>
         <h1>Felix<br />Johannessen</h1>
         <p className="role">Student <i /> Developer <i /> Designer</p>
-        <a className="work-link" href="#projects">Explore selected work <span aria-hidden="true">↗</span></a>
+        <a className="work-link" href="#projects" onClick={clearFocus}>Explore selected work <span aria-hidden="true">↗</span></a>
       </div>
 
       <aside className="scene-controls" aria-label="Solar system controls">
