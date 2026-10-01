@@ -5,15 +5,15 @@ export default function AboutSection() {
         <p className="eyebrow"><span>03</span> About</p>
         <div className="about-content">
           <h2 id="about-heading">A bit about me<span>.</span></h2>
-          <p className="about-lead">I’m Felix Johannessen, a 21-year-old CS student who’s been curious about computers and technology for as long as I can remember.</p>
+          <p className="about-lead">Hi, I’m Felix. I’m 21 and studying computer science. I’ve been interested in computers for as long as I can remember.</p>
           <div className="about-more">
             <div>
-              <h3>What keeps me building</h3>
-              <p>I love programming because an idea can become something real. I’m always excited to try new approaches, solve problems, and learn along the way.</p>
+              <h3>Why programming?</h3>
+              <p>I like being able to take an idea and build it myself. There’s a lot to figure out along the way, but that’s part of what I enjoy about it.</p>
             </div>
             <div>
-              <h3>Outside the screen</h3>
-              <p>When I’m not coding, you’ll usually find me weight training, practicing guitar, or out walking my dog.</p>
+              <h3>Other interests</h3>
+              <p>Outside of coding, I spend time lifting weights, practicing guitar, and walking my dog.</p>
             </div>
           </div>
         </div>
