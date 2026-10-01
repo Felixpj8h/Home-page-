@@ -128,6 +128,20 @@ export default function ProjectsSection() {
   const [expandedImage, setExpandedImage] = useState<ExpandedImage | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
+  useEffect(() => {
+    if (!openProject) return
+
+    // Wait until the newly opened details are visible before measuring them.
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(`${openProject}-details`)?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        block: 'start',
+      })
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [openProject])
+
   const closeImage = () => {
     if (!expandedImage) return
     expandedImage.trigger.focus()

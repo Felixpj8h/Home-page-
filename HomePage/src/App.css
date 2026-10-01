@@ -98,7 +98,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .project-compact .project-copy h3 { margin: 0; font-size: clamp(2rem, 3vw, 3.2rem); }
 .project-compact .project-toggle { margin: 0; white-space: nowrap; }
 .project-compact .project-languages { grid-column: 1 / -1; margin-top: 22px; }
-.project-details { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); gap: clamp(40px, 6vw, 110px); padding: 14px 0 clamp(54px, 6vw, 92px); animation: details-enter 260ms ease both; }
+.project-details { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); gap: clamp(40px, 6vw, 110px); padding: 14px 0 clamp(54px, 6vw, 92px); scroll-margin-top: 32px; animation: details-enter 260ms ease both; }
 .project-details-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 35px 50px; align-content: start; }
 .project-details-single-copy { grid-template-columns: 1fr; }
 .detail-block h4 { margin: 0 0 12px; color: #c18555; font: 500 0.64rem/1 'DM Sans', sans-serif; letter-spacing: 0.17em; text-transform: uppercase; }
