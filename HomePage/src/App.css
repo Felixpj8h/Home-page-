@@ -14,7 +14,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .cosmic-haze { position: absolute; width: 52vw; height: 52vw; left: 46%; top: 13%; z-index: 1; pointer-events: none; background: radial-gradient(circle, rgba(231, 116, 43, 0.11), rgba(58, 75, 127, 0.05) 42%, transparent 70%); filter: blur(22px); }
 
 .topbar { position: absolute; z-index: 20; top: 0; left: 0; right: 0; height: 112px; display: flex; align-items: center; padding: 0 clamp(30px, 4.2vw, 76px); }
-.wordmark { color: #fff; text-decoration: none; font: 600 1rem/1 'Manrope', sans-serif; letter-spacing: -0.04em; margin-right: clamp(44px, 6.5vw, 116px); }
+.wordmark { color: #fff; text-decoration: none; font: 600 1.75rem/1 'Manrope', sans-serif; letter-spacing: -0.04em; margin-right: clamp(44px, 6.5vw, 116px); }
 .wordmark span { color: #d68d51; }
 .nav { display: flex; gap: clamp(28px, 3.4vw, 58px); }
 .nav a { position: relative; padding: 16px 0; color: rgba(238, 239, 242, 0.52); text-decoration: none; font: 400 0.82rem/1 'DM Sans', sans-serif; letter-spacing: 0.06em; transition: color 180ms ease; }
@@ -138,7 +138,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 900px) {
   .experience::before { background: linear-gradient(180deg, rgba(2, 6, 13, 0.3) 0%, rgba(2, 6, 13, 0.08) 45%, rgba(2, 6, 13, 0.98) 77%); }
   .topbar { height: 84px; padding: 0 24px; justify-content: space-between; }
-  .wordmark { margin: 0; font-size: 1.05rem; }
+  .wordmark { margin: 0; font-size: 1.5rem; }
   .menu-toggle { position: relative; z-index: 2; display: grid; place-content: center; gap: 6px; width: 42px; height: 42px; border: 0; background: transparent; }
   .menu-toggle span { display: block; width: 22px; height: 1px; background: #fff; }
   .nav { position: absolute; inset: 0 0 auto 0; display: flex; flex-direction: column; gap: 3px; padding: 80px 24px 24px; background: rgba(2, 5, 11, 0.94); backdrop-filter: blur(20px); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease; }
