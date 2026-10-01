@@ -23,6 +23,7 @@ export const projects: Project[] = [
   {
     id: 'w-tracker',
     title: 'W-Tracker',
+    codeUrl: 'https://github.com/Felixpj8h/W-Tracker',
     previewImage: '/projects/w-tracker-dashboard.png',
     detailImages: ['/projects/w-tracker-coach.png'],
     summary: 'A workout tracker built around how I train and manage my data.',
@@ -49,6 +50,7 @@ export const projects: Project[] = [
   {
     id: 'examgen',
     title: 'Examgen',
+    codeUrl: 'https://github.com/Felixpj8h/ExamGen',
     previewImage: '/projects/examgen-upload.png',
     detailImages: ['/projects/examgen-question.png'],
     summary: 'A Gemini-powered tool for creating interactive practice exams.',
@@ -73,6 +75,7 @@ export const projects: Project[] = [
   {
     id: 'dagenstall',
     title: 'Dagens tall',
+    codeUrl: 'https://github.com/Felixpj8h/Dagens',
     previewImage: '/projects/dagenstall.png',
     detailImages: ['/projects/dagenstall-report.png'],
     detailCaption: 'The editable closing report can be copied to Teams.',

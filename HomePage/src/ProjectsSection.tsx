@@ -100,12 +100,6 @@ function ProjectDetails({ project, number, onExpand }: { project: Project; numbe
             ) : null}
           </>
         )}
-        {(project.liveUrl || project.codeUrl) && (
-          <div className="project-links">
-            {project.liveUrl && <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">Live project ↗</a>}
-            {project.codeUrl && <a href={project.codeUrl} target="_blank" rel="noopener noreferrer">View code ↗</a>}
-          </div>
-        )}
       </div>
       <div className="project-detail-gallery">
         {project.detailImages?.length
@@ -196,7 +190,8 @@ export default function ProjectsSection() {
                     <span className="project-number">{number} / {project.featured ? 'Featured' : 'More work'}</span>
                     <h3 id={`${project.id}-title`}>{project.title}</h3>
                     <p>{project.summary}</p>
-                    <button
+                    <div className="project-actions">
+                      <button
                       type="button"
                       className="project-toggle"
                       aria-expanded={isOpen}
@@ -204,7 +199,10 @@ export default function ProjectsSection() {
                       onClick={() => setOpenProject(isOpen ? null : project.id)}
                     >
                       {isOpen ? 'Close details' : 'View details'} <span aria-hidden="true">{isOpen ? '−' : '↗'}</span>
-                    </button>
+                      </button>
+                      {project.codeUrl && <a className="project-toggle" href={project.codeUrl} target="_blank" rel="noopener noreferrer" aria-label={`View ${project.title} code on GitHub`}>View code <span aria-hidden="true">↗</span></a>}
+                      {project.liveUrl && <a className="project-toggle" href={project.liveUrl} target="_blank" rel="noopener noreferrer">Live project <span aria-hidden="true">↗</span></a>}
+                    </div>
                     <ProjectLanguages project={project} />
                   </div>
                 </div>

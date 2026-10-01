@@ -77,7 +77,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .project-number { color: #c18555; font: 500 0.64rem/1 'DM Sans', sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 .project-copy h3 { margin: 23px 0 16px; font: 400 clamp(2.5rem, 4.5vw, 5.2rem)/1.02 'Manrope', sans-serif; letter-spacing: -0.068em; }
 .project-copy > p { max-width: 330px; margin: 0; color: rgba(225, 226, 230, 0.54); font: 300 1rem/1.65 'Manrope', sans-serif; }
-.project-toggle { display: inline-flex; align-items: center; gap: 16px; min-height: 44px; margin-top: 30px; padding: 0 0 5px; border: 0; border-bottom: 1px solid rgba(218, 147, 91, 0.7); color: #f3f0ea; background: transparent; cursor: pointer; font: 500 0.73rem/1 'DM Sans', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; transition: color 180ms ease, border-color 180ms ease; }
+.project-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: 30px; }
+.project-toggle { display: inline-flex; align-items: center; gap: 16px; min-height: 44px; text-decoration: none; padding: 0 0 5px; border: 0; border-bottom: 1px solid rgba(218, 147, 91, 0.7); color: #f3f0ea; background: transparent; cursor: pointer; font: 500 0.73rem/1 'DM Sans', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; transition: color 180ms ease, border-color 180ms ease; }
 .project-toggle span { color: #dc9a63; font-size: 1.1rem; }
 .project-toggle:hover { color: #dc9a63; border-color: #dc9a63; }
 .project-languages { max-width: 460px; margin-top: 28px; }
@@ -93,10 +94,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .project-compact .preview-title { font-size: clamp(1.3rem, 2.3vw, 2.4rem); }
 .project-compact .preview-corner { top: 24px; left: 24px; }
 .project-compact .preview-status { bottom: 24px; right: 24px; font-size: 0.45rem; }
-.project-compact .project-copy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr) auto; align-items: center; column-gap: 30px; }
+.project-compact .project-copy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr); align-items: center; column-gap: 30px; }
 .project-compact .project-number { grid-column: 1 / -1; margin-bottom: 10px; }
 .project-compact .project-copy h3 { margin: 0; font-size: clamp(2rem, 3vw, 3.2rem); }
-.project-compact .project-toggle { margin: 0; white-space: nowrap; }
+.project-compact .project-actions { grid-column: 1 / -1; margin-top: 22px; }
 .project-compact .project-languages { grid-column: 1 / -1; margin-top: 22px; }
 .project-details { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); gap: clamp(40px, 6vw, 110px); padding: 14px 0 clamp(54px, 6vw, 92px); scroll-margin-top: 32px; animation: details-enter 260ms ease both; }
 .project-details-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 35px 50px; align-content: start; }
@@ -104,8 +105,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .detail-block h4 { margin: 0 0 12px; color: #c18555; font: 500 0.64rem/1 'DM Sans', sans-serif; letter-spacing: 0.17em; text-transform: uppercase; }
 .detail-block p, .detail-block li { margin: 0; color: rgba(225, 226, 230, 0.64); font: 300 0.95rem/1.7 'Manrope', sans-serif; }
 .detail-block ul { margin: 0; padding-left: 18px; }
-.project-links { display: flex; align-items: start; gap: 26px; }
-.project-links a { color: #f3f0ea; text-decoration-color: #c18555; text-underline-offset: 6px; font: 500 0.75rem/1.5 'DM Sans', sans-serif; text-transform: uppercase; letter-spacing: 0.06em; }
 .project-preview-detail { aspect-ratio: 1.4; }
 .project-preview-detail .preview-title { font-size: clamp(2rem, 3.5vw, 4.5rem); }
 .project-detail-gallery { display: grid; gap: 20px; align-content: start; }
@@ -167,7 +166,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .project-compact .project-main { grid-template-columns: minmax(140px, 0.5fr) 1fr; padding: 60px 0; }
   .project-compact .project-copy { display: block; }
   .project-compact .project-copy h3 { margin: 14px 0 8px; }
-  .project-compact .project-toggle { margin-top: 12px; }
+  .project-compact .project-actions { margin-top: 12px; }
   .project-compact .project-languages { margin-top: 24px; }
 }
 
