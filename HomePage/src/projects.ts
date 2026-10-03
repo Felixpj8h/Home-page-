@@ -1,3 +1,8 @@
+import dagensDemo from './assets/gifs/Dagens/Dagens.mp4'
+import dashboardDemo from './assets/gifs/W-Tracker/Dashboard.mp4'
+import coachDemo from './assets/gifs/W-Tracker/Coach and calender.mp4'
+import routinesDemo from './assets/gifs/W-Tracker/Routines and log.mp4'
+
 export type Project = {
   id: string
   title: string
@@ -10,6 +15,7 @@ export type Project = {
   origin?: string
   previewImage?: string
   detailImages?: string[]
+  detailDemos?: { src: string; label: string; caption: string }[]
   detailCaption?: string
   languages: { name: string; percent: number; color: string }[]
   liveUrl?: string
@@ -25,8 +31,12 @@ export const projects: Project[] = [
     title: 'W-Tracker',
     codeUrl: 'https://github.com/Felixpj8h/W-Tracker',
     previewImage: '/projects/w-tracker-dashboard.png',
-    detailImages: ['/projects/w-tracker-coach.png'],
-    summary: 'A workout tracker built around how I train and manage my data.',
+    detailDemos: [
+      { src: dashboardDemo, label: 'Dashboard', caption: 'Bodyweight, weekly activity, and training volume at a glance.' },
+      { src: routinesDemo, label: 'Routines & logging', caption: 'Organize workout routines, start a session, and log your sets.' },
+      { src: coachDemo, label: 'Coach & calendar', caption: 'Ask questions about your training, review suggested changes, and plan upcoming workouts.' },
+    ],
+    summary: 'A workout tracker built around how I train and manage my data. (live demo comming soon)',
     overview: 'W-Tracker combines my interests in weightlifting and web development. Spreadsheets gave me control over my workout data but made logging tedious; tracking apps were easier to use, but didn’t give me the flexibility I wanted without paywalls. I built W-Tracker to make logging simple while keeping the tracker tailored to how I train.',
     features: [
       'Log workouts and review recent sessions.',
@@ -35,7 +45,6 @@ export const projects: Project[] = [
       'View routines, upcoming workouts, and workout history.',
       'Ask the Coach questions about your training data.',
     ],
-    detailCaption: 'The Coach can break down training volume and set distribution by muscle group.',
     languages: [
       { name: 'TypeScript', percent: 42.9, color: '#4b80c8' },
       { name: 'Python', percent: 39.3, color: '#4a78a8' },
@@ -77,8 +86,7 @@ export const projects: Project[] = [
     title: 'Dagens tall',
     codeUrl: 'https://github.com/Felixpj8h/Dagens',
     previewImage: '/projects/dagenstall.png',
-    detailImages: ['/projects/dagenstall-report.png'],
-    detailCaption: 'The editable closing report can be copied to Teams.',
+    detailDemos: [{ src: dagensDemo, label: 'Closing report', caption: 'Enter the day’s results, review the closing report, and copy it to Teams.' }],
     languages: [
       { name: 'TypeScript', percent: 65.7, color: '#4b80c8' },
       { name: 'Python', percent: 31.8, color: '#4a78a8' },
