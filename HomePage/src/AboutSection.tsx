@@ -2,7 +2,6 @@ export default function AboutSection() {
   return (
     <section className="about-section" id="about" aria-labelledby="about-heading">
       <div className="about-inner">
-        <p className="eyebrow"><span>03</span> About</p>
         <div className="about-content">
           <h2 id="about-heading">A bit about me<span>.</span></h2>
           <p className="about-lead">Hi, I’m Felix. I’m 21 and studying computer science. I’ve been interested in computers for as long as I can remember.</p>
