@@ -227,10 +227,8 @@ export default function ProjectsSection() {
     <section className="projects-section" id="projects" aria-labelledby="projects-heading">
       <div className="projects-inner">
         <div className="projects-intro">
-          <p className="eyebrow"><span>02</span> Selected work</p>
           <div className="projects-intro-row">
             <h2 id="projects-heading">Projects<span>.</span></h2>
-            <p>A selection of things I’ve made.</p>
           </div>
         </div>
 
@@ -244,7 +242,6 @@ export default function ProjectsSection() {
                 <div className="project-main">
                   <ProjectPreview project={project} number={number} onExpand={openMedia} />
                   <div className="project-copy">
-                    <span className="project-number">{number} / {project.featured ? 'Featured' : 'More work'}</span>
                     <h3 id={`${project.id}-title`}>{project.title}</h3>
                     <p>{project.summary}</p>
                     <div className="project-actions">

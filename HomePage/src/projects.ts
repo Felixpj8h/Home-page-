@@ -93,7 +93,7 @@ export const projects: Project[] = [
       { name: 'CSS', percent: 1.8, color: '#713fa3' },
       { name: 'HTML', percent: 0.7, color: '#e35d3e' },
     ],
-    summary: 'A tool that helps me write closing reports at work.',
+    summary: '',
     overview: 'Dagens tall turns the numbers and highlights from a workday into a closing report I can review and share with my team.',
     workflow: [
       { title: 'Results', description: 'Enter the daily budget and earnings. The app calculates the difference.' },

@@ -1045,14 +1045,11 @@ function App() {
       </header>
 
       <div className="hero-copy">
-        <p className="eyebrow"><span>01</span> Portfolio / 2026</p>
         <h1>Felix<br />Johannessen</h1>
-        <p className="role">Student <i /> Developer <i /> Designer</p>
         <a className="work-link" href="#projects" onClick={clearFocus}>Explore selected work <span aria-hidden="true">↗</span></a>
       </div>
 
       <aside className="scene-controls" aria-label="Solar system controls">
-        <p>{focus ? `Focused on ${focus.name}` : 'Interactive orbit'}</p>
         <div>
           <button type="button" onClick={() => setPaused((value) => !value)} aria-pressed={paused}>{paused ? 'Play' : 'Pause'}</button>
           <button type="button" onClick={() => setLabels((value) => !value)} aria-pressed={labels}>{labels ? 'Hide names' : 'Show names'}</button>
@@ -1060,7 +1057,6 @@ function App() {
         </div>
       </aside>
 
-      <div className="drag-hint" aria-hidden="true"><span /> {focus ? 'Drag to orbit · Esc to exit' : 'Drag · click a planet'}</div>
     </section>
     <ProjectsSection />
     <AboutSection />

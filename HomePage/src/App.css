@@ -14,31 +14,24 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .cosmic-haze { position: absolute; width: 52vw; height: 52vw; left: 46%; top: 13%; z-index: 1; pointer-events: none; background: radial-gradient(circle, rgba(231, 116, 43, 0.11), rgba(58, 75, 127, 0.05) 42%, transparent 70%); filter: blur(22px); }
 
 .topbar { position: absolute; z-index: 20; top: 0; left: 0; right: 0; height: 112px; display: flex; align-items: center; padding: 0 clamp(30px, 4.2vw, 76px); }
-.wordmark { color: #fff; text-decoration: none; font: 600 1.75rem/1 'Manrope', sans-serif; letter-spacing: -0.04em; margin-right: clamp(44px, 6.5vw, 116px); }
+.wordmark { color: #fff; text-decoration: none; font: 600 2.1rem/1 'Manrope', sans-serif; letter-spacing: -0.04em; margin-right: clamp(44px, 6.5vw, 116px); }
 .wordmark span { color: #d68d51; }
 .nav { display: flex; gap: clamp(28px, 3.4vw, 58px); }
-.nav a { position: relative; padding: 16px 0; color: rgba(238, 239, 242, 0.52); text-decoration: none; font: 400 0.82rem/1 'DM Sans', sans-serif; letter-spacing: 0.06em; transition: color 180ms ease; }
+.nav a { position: relative; padding: 16px 0; color: rgba(238, 239, 242, 0.52); text-decoration: none; font: 400 1rem/1 'DM Sans', sans-serif; letter-spacing: 0.06em; transition: color 180ms ease; }
 .nav a:hover, .nav a:focus-visible, .nav a.active { color: #f7f5f0; }
 .nav a.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: 5px; height: 1px; background: #d89a61; }
 .menu-toggle { display: none; }
 
 .hero-copy { position: absolute; z-index: 10; left: clamp(30px, 4.2vw, 76px); top: 50%; width: min(480px, 40vw); transform: translateY(-43%); }
-.eyebrow { margin: 0 0 24px; color: rgba(223, 224, 229, 0.48); font: 500 0.69rem/1 'DM Sans', sans-serif; letter-spacing: 0.2em; text-transform: uppercase; }
-.eyebrow span { color: #db945c; margin-right: 14px; }
 .hero-copy h1 { margin: 0; color: #f5f4f0; font: 400 clamp(3.7rem, 6vw, 6.8rem)/0.91 'Manrope', sans-serif; letter-spacing: -0.068em; text-shadow: 0 14px 42px rgba(0, 0, 0, 0.32); }
-.role { display: flex; align-items: center; gap: 13px; margin: 28px 0 0; color: rgba(239, 239, 241, 0.62); font: 400 clamp(0.68rem, 0.9vw, 0.82rem)/1 'DM Sans', sans-serif; letter-spacing: 0.22em; text-transform: uppercase; }
-.role i { width: 3px; height: 3px; border-radius: 50%; background: #cb8853; }
 .work-link { display: inline-flex; align-items: center; gap: 12px; margin-top: 28px; padding-bottom: 6px; color: #f3f0ea; border-bottom: 1px solid rgba(218, 147, 91, 0.7); text-decoration: none; font: 500 0.76rem/1 'DM Sans', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
 .work-link span { color: #dc9a63; font-size: 1rem; }
 
 .scene-controls { position: absolute; z-index: 10; right: clamp(28px, 4vw, 72px); bottom: 42px; text-align: right; }
-.scene-controls p { margin: 0 0 10px; color: rgba(223, 224, 229, 0.38); font: 500 0.64rem/1 'DM Sans', sans-serif; letter-spacing: 0.2em; text-transform: uppercase; }
 .scene-controls div { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .scene-controls button { min-height: 38px; padding: 0 14px; color: rgba(246, 244, 240, 0.72); border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 999px; background: rgba(7, 12, 23, 0.55); backdrop-filter: blur(12px); cursor: pointer; font: 500 0.68rem/1 'DM Sans', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; transition: border-color 180ms ease, background 180ms ease, color 180ms ease; }
 .scene-controls .focus-exit { border-color: rgba(223, 153, 96, 0.48); }
 .scene-controls button:hover, .scene-controls button:focus-visible, .scene-controls button[aria-pressed='true'] { color: #fff; border-color: rgba(223, 153, 96, 0.58); background: rgba(55, 35, 25, 0.62); }
-.drag-hint { position: absolute; z-index: 10; right: 50%; bottom: 44px; display: flex; align-items: center; gap: 10px; color: rgba(228, 229, 233, 0.38); font: 500 0.62rem/1 'DM Sans', sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
-.drag-hint span { width: 24px; height: 1px; background: rgba(218, 147, 91, 0.7); }
 .planet-label { display: block; padding: 5px 8px; color: rgba(255, 255, 255, 0.86); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 999px; background: rgba(3, 6, 13, 0.62); backdrop-filter: blur(8px); white-space: nowrap; font: 500 9px/1 'DM Sans', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; pointer-events: none; }
 
 .projects-section { position: relative; color: #f5f4f0; background: #080b11; border-top: 1px solid rgba(255, 255, 255, 0.09); scroll-margin-top: 0; }
@@ -74,7 +67,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .preview-corner { top: 38px; left: 38px; }
 .preview-status { bottom: 38px; right: 38px; }
 .preview-title { max-width: 90%; font: 400 clamp(2.7rem, 5vw, 6rem)/1 'Manrope', sans-serif; letter-spacing: -0.075em; white-space: nowrap; }
-.project-number { color: #c18555; font: 500 0.64rem/1 'DM Sans', sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 .project-copy h3 { margin: 23px 0 16px; font: 400 clamp(2.5rem, 4.5vw, 5.2rem)/1.02 'Manrope', sans-serif; letter-spacing: -0.068em; }
 .project-copy > p { max-width: 330px; margin: 0; color: rgba(225, 226, 230, 0.54); font: 300 1rem/1.65 'Manrope', sans-serif; }
 .project-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: 30px; }
@@ -95,7 +87,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .project-compact .preview-corner { top: 24px; left: 24px; }
 .project-compact .preview-status { bottom: 24px; right: 24px; font-size: 0.45rem; }
 .project-compact .project-copy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr); align-items: center; column-gap: 30px; }
-.project-compact .project-number { grid-column: 1 / -1; margin-bottom: 10px; }
 .project-compact .project-copy h3 { margin: 0; font-size: clamp(2rem, 3vw, 3.2rem); }
 .project-compact .project-actions { grid-column: 1 / -1; margin-top: 22px; }
 .project-compact .project-languages { grid-column: 1 / -1; margin-top: 22px; }
@@ -153,21 +144,18 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 900px) {
   .experience::before { background: linear-gradient(180deg, rgba(2, 6, 13, 0.3) 0%, rgba(2, 6, 13, 0.08) 45%, rgba(2, 6, 13, 0.98) 77%); }
   .topbar { height: 84px; padding: 0 24px; justify-content: space-between; }
-  .wordmark { margin: 0; font-size: 1.5rem; }
+  .wordmark { margin: 0; font-size: 1.8rem; }
   .menu-toggle { position: relative; z-index: 2; display: grid; place-content: center; gap: 6px; width: 42px; height: 42px; border: 0; background: transparent; }
   .menu-toggle span { display: block; width: 22px; height: 1px; background: #fff; }
   .nav { position: absolute; inset: 0 0 auto 0; display: flex; flex-direction: column; gap: 3px; padding: 80px 24px 24px; background: rgba(2, 5, 11, 0.94); backdrop-filter: blur(20px); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease; }
   .nav-open { opacity: 1; visibility: visible; transform: none; }
-  .nav a { padding: 13px 0; font-size: 0.88rem; }
+  .nav a { padding: 13px 0; font-size: 1rem; }
   .nav a.active::after { right: auto; width: 24px; bottom: 5px; }
   .hero-copy { left: 24px; right: 24px; top: auto; bottom: 105px; width: auto; transform: none; }
   .hero-copy h1 { font-size: clamp(3.2rem, 14vw, 5.5rem); }
   .eyebrow { margin-bottom: 15px; }
-  .role { margin-top: 18px; letter-spacing: 0.15em; }
   .work-link { margin-top: 20px; }
   .scene-controls { right: 20px; bottom: 25px; }
-  .scene-controls p { display: none; }
-  .drag-hint { display: none; }
   .cosmic-haze { width: 100vw; height: 100vw; left: 10%; top: 10%; }
   .projects-inner { padding: 100px 24px; }
   .about-inner { padding: 100px 24px 130px; }
@@ -188,7 +176,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 520px) {
   .hero-copy { bottom: 116px; }
   .hero-copy h1 { font-size: clamp(3rem, 15.7vw, 4.6rem); }
-  .role { gap: 8px; font-size: 0.6rem; }
   .scene-controls { left: 24px; right: 24px; text-align: left; }
   .scene-controls div { justify-content: flex-start; }
   .experience { min-height: 560px; }
