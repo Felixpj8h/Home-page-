@@ -1040,7 +1040,7 @@ function App() {
           <a className="active" href="#home" onClick={() => setMenuOpen(false)}>Home</a>
           <a href="#projects" onClick={() => { setMenuOpen(false); clearFocus() }}>Projects</a>
           <a href="#about" onClick={() => { setMenuOpen(false); clearFocus() }}>About</a>
-          <a href="mailto:hello@felix.dev" onClick={() => setMenuOpen(false)}>Contact</a>
+          <a href="https://www.linkedin.com/in/felix-johannessen-83bb85258/" onClick={() => setMenuOpen(false)}>Contact</a>
         </nav>
       </header>
 
