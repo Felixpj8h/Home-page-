@@ -1046,6 +1046,7 @@ function App() {
 
       <div className="hero-copy">
         <h1>Felix<br />Johannessen</h1>
+        <p className="About">Hi, I’m Felix, a third year computer science student at the University of Bergen. I enjoy building things and solving problems.</p>
         <a className="work-link" href="#projects" onClick={clearFocus}>Explore my projects <span aria-hidden="true">↗</span></a>
       </div>
 

@@ -25,6 +25,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .hero-copy { position: absolute; z-index: 10; left: clamp(30px, 4.2vw, 76px); top: 50%; width: min(480px, 40vw); transform: translateY(-43%); }
 .hero-copy h1 { margin: 0; color: #f5f4f0; font: 400 clamp(3.7rem, 6vw, 6.8rem)/0.91 'Manrope', sans-serif; letter-spacing: -0.068em; text-shadow: 0 14px 42px rgba(0, 0, 0, 0.32); }
 .work-link { display: inline-flex; align-items: center; gap: 12px; margin-top: 28px; padding-bottom: 6px; color: #f3f0ea; border-bottom: 1px solid rgba(218, 147, 91, 0.7); text-decoration: none; font: 500 0.76rem/1 'DM Sans', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+.About {color: #b8bcc5;}
 .work-link span { color: #dc9a63; font-size: 1rem; }
 
 .scene-controls { position: absolute; z-index: 10; right: clamp(28px, 4vw, 72px); bottom: 42px; text-align: right; }
