@@ -1046,7 +1046,7 @@ function App() {
 
       <div className="hero-copy">
         <h1>Felix<br />Johannessen</h1>
-        <a className="work-link" href="#projects" onClick={clearFocus}>Explore selected work <span aria-hidden="true">↗</span></a>
+        <a className="work-link" href="#projects" onClick={clearFocus}>Explore my projects <span aria-hidden="true">↗</span></a>
       </div>
 
       <aside className="scene-controls" aria-label="Solar system controls">

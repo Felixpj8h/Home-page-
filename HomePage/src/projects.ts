@@ -37,7 +37,7 @@ export const projects: Project[] = [
       { src: coachDemo, label: 'Coach & calendar', caption: 'Ask questions about your training, review suggested changes, and plan upcoming workouts.' },
     ],
     summary: 'A workout tracker built around how I train and manage my data. (live demo comming soon)',
-    overview: 'W-Tracker combines my interests in weightlifting and web development. Spreadsheets gave me control over my workout data but made logging tedious; tracking apps were easier to use, but didn’t give me the flexibility I wanted without paywalls. I built W-Tracker to make logging simple while keeping the tracker tailored to how I train.',
+    overview: 'W-Tracker combines my interests in weightlifting and web development. Spreadsheets gave me control over my workout data but made logging tedious, tracking apps were easier to use, but didn’t give me the flexibility I wanted without paywalls. I built W-Tracker to make logging simple while keeping the tracker tailored to how I train.',
     features: [
       'Log workouts and review recent sessions.',
       'Track bodyweight and weekly activity over time.',
