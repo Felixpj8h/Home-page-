@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom'
 import { projects } from './projects'
 import type { Project } from './projects'
 
-type OpenMedia = (src: string, alt: string, trigger: HTMLButtonElement, kind?: 'image' | 'video') => void
-type ExpandedMedia = { src: string; alt: string; trigger: HTMLButtonElement; kind: 'image' | 'video' }
+type OpenMedia = (src: string, alt: string, trigger: HTMLButtonElement, kind?: 'image' | 'video', demos?: Project['detailDemos'], title?: string) => void
+type ExpandedMedia = { src: string; alt: string; trigger: HTMLButtonElement; kind: 'image' | 'video'; demos?: Project['detailDemos']; title?: string }
 
 function ProjectPreview({ project, number, onExpand, detail = false }: { project: Project; number: string; onExpand: OpenMedia; detail?: boolean }) {
   const image = project.previewImage
@@ -73,7 +73,7 @@ function ProjectDemoGallery({ project, onExpand }: { project: Project; onExpand:
       <div className="project-demo-stage" aria-busy={loading}>
         {loading && <span className="project-demo-status" role="status">Loading {demo.label} demo…</span>}
         {failed ? <span className="project-demo-status" role="status">This demo could not load. {demos.length > 1 ? 'Try the next one.' : 'Reopen the project details to try again.'}</span> : (
-          <button type="button" className="project-image-button" aria-label={`Expand ${alt}`} disabled={loading} onClick={event => onExpand(demo.src, alt, event.currentTarget, 'video')}>
+          <button type="button" className="project-image-button" aria-label={`Expand ${alt}`} disabled={loading} onClick={event => onExpand(demo.src, alt, event.currentTarget, 'video', demos, project.title)}>
             <video key={demo.src} src={demo.src} aria-label={alt} autoPlay loop muted playsInline preload="metadata" onLoadedData={() => setLoading(false)} onError={() => { setLoading(false); setFailed(true) }} />
           </button>
         )}
@@ -166,6 +166,15 @@ export default function ProjectsSection() {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
 
+  const navigateMedia = (direction: number) => {
+    setExpandedMedia(current => {
+      if (!current || current.kind !== 'video' || !current.demos || current.demos.length < 2) return current
+      const index = current.demos.findIndex(demo => demo.src === current.src)
+      const demo = current.demos[(index + direction + current.demos.length) % current.demos.length]
+      return { ...current, src: demo.src, alt: `${current.title}: ${demo.label} demo` }
+    })
+  }
+
   useEffect(() => {
     if (!openProject) return
 
@@ -191,13 +200,16 @@ export default function ProjectsSection() {
     if (!expandedMedia) return
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    closeButtonRef.current?.focus()
+    if (!dialogRef.current?.contains(document.activeElement)) closeButtonRef.current?.focus()
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         expandedMedia.trigger.focus()
         void expandedMedia.trigger.querySelector('video')?.play().catch(() => undefined)
         setExpandedMedia(null)
+      } else if (expandedMedia.kind === 'video' && (expandedMedia.demos?.length ?? 0) > 1 && (event.key === 'ArrowLeft' || event.key === 'ArrowRight') && !(event.target instanceof HTMLVideoElement)) {
+        event.preventDefault()
+        navigateMedia(event.key === 'ArrowLeft' ? -1 : 1)
       } else if (event.key === 'Tab') {
         const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button, video[controls], a[href], input, select, textarea, [tabindex="0"]')
         const first = focusable?.[0]
@@ -218,9 +230,9 @@ export default function ProjectsSection() {
     }
   }, [expandedMedia])
 
-  const openMedia: OpenMedia = (src, alt, trigger, kind = 'image') => {
+  const openMedia: OpenMedia = (src, alt, trigger, kind = 'image', demos, title) => {
     trigger.querySelector('video')?.pause()
-    setExpandedMedia({ src, alt, trigger, kind })
+    setExpandedMedia({ src, alt, trigger, kind, demos, title })
   }
 
   return (
@@ -273,9 +285,13 @@ export default function ProjectsSection() {
           <div ref={dialogRef} className="image-lightbox-dialog" role="dialog" aria-modal="true" aria-label={expandedMedia.alt}>
             <button ref={closeButtonRef} type="button" className="image-lightbox-close" onClick={closeMedia}>Close <span aria-hidden="true">×</span></button>
             {expandedMedia.kind === 'video'
-              ? <video src={expandedMedia.src} aria-label={expandedMedia.alt} autoPlay loop muted playsInline controls />
+              ? <video key={expandedMedia.src} src={expandedMedia.src} aria-label={expandedMedia.alt} autoPlay loop muted playsInline controls />
               : <img src={expandedMedia.src} alt={expandedMedia.alt} />}
-            <p>{expandedMedia.alt}</p>
+            {expandedMedia.kind === 'video' && (expandedMedia.demos?.length ?? 0) > 1 && <>
+              <button type="button" className="image-lightbox-arrow image-lightbox-previous" aria-label="Previous video" onClick={() => navigateMedia(-1)}><span aria-hidden="true">←</span></button>
+              <button type="button" className="image-lightbox-arrow image-lightbox-next" aria-label="Next video" onClick={() => navigateMedia(1)}><span aria-hidden="true">→</span></button>
+            </>}
+            <p aria-live="polite" aria-atomic="true">{expandedMedia.alt}</p>
           </div>
         </div>,
         document.body,

@@ -140,6 +140,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .image-lightbox-close:hover, .image-lightbox-close:focus-visible { border-color: #d68d51; }
 .image-lightbox-dialog img, .image-lightbox-dialog video { display: block; max-width: 100%; max-height: calc(100dvh - 114px); min-height: 0; object-fit: contain; }
 .image-lightbox-dialog p { margin: 0; color: rgba(245, 244, 240, 0.7); font: 400 0.78rem/1.4 'Manrope', sans-serif; text-align: center; }
+.image-lightbox-arrow { position: fixed; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 50%; background: rgba(20, 26, 35, 0.9); color: #f5f4f0; font-size: 1.5rem; cursor: pointer; }
+.image-lightbox-previous { left: 20px; }
+.image-lightbox-next { right: 20px; }
+.image-lightbox-arrow:hover, .image-lightbox-arrow:focus-visible { border-color: #d68d51; background: #242b35; }
+@media (max-width: 600px) {
+  .image-lightbox-previous { left: 8px; }
+  .image-lightbox-next { right: 8px; }
+}
 @keyframes details-enter { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 900px) {
