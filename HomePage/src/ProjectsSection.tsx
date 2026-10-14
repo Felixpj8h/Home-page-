@@ -267,6 +267,7 @@ export default function ProjectsSection() {
                       {isOpen ? 'Close details' : 'View details'} <span aria-hidden="true">{isOpen ? '−' : '↗'}</span>
                       </button>
                       {project.codeUrl && <a className="project-toggle" href={project.codeUrl} target="_blank" rel="noopener noreferrer" aria-label={`View ${project.title} code on GitHub`}>View code <span aria-hidden="true">↗</span></a>}
+                      {project.demoUrl && <a className="project-toggle" href={project.demoUrl} target="_blank" rel="noopener noreferrer" aria-label="Try the live demo">Live demo<span aria-hidden="true">↗</span></a>}
                       {project.liveUrl && <a className="project-toggle" href={project.liveUrl} target="_blank" rel="noopener noreferrer">Live project <span aria-hidden="true">↗</span></a>}
                     </div>
                     <ProjectLanguages project={project} />

@@ -20,6 +20,7 @@ export type Project = {
   languages: { name: string; percent: number; color: string }[]
   liveUrl?: string
   codeUrl?: string
+  demoUrl?: string
   featured: boolean
 }
 
@@ -30,6 +31,7 @@ export const projects: Project[] = [
     id: 'w-tracker',
     title: 'W-Tracker',
     codeUrl: 'https://github.com/Felixpj8h/W-Tracker',
+    demoUrl: 'https://workout.felixjohannessen.no/demo',
     previewImage: '/projects/w-tracker-dashboard.png',
     detailDemos: [
       { src: dashboardDemo, label: 'Dashboard', caption: 'Bodyweight, weekly activity, and training volume at a glance.' },
