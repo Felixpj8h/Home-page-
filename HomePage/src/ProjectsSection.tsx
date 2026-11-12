@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { projects } from './projects'
 import type { Project } from './projects'
+import JernLogo from './JernLogo'
 
 type OpenMedia = (src: string, alt: string, trigger: HTMLButtonElement, kind?: 'image' | 'video', demos?: Project['detailDemos'], title?: string) => void
 type ExpandedMedia = { src: string; alt: string; trigger: HTMLButtonElement; kind: 'image' | 'video'; demos?: Project['detailDemos']; title?: string }
@@ -254,7 +255,7 @@ export default function ProjectsSection() {
                 <div className="project-main">
                   <ProjectPreview project={project} number={number} onExpand={openMedia} />
                   <div className="project-copy">
-                    <h3 id={`${project.id}-title`}>{project.title}</h3>
+                    <h3 id={`${project.id}-title`}>{project.id === 'Jern' ? <JernLogo /> : project.title}</h3>
                     <p>{project.summary}</p>
                     <div className="project-actions">
                       <button
